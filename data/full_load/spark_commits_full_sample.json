@@ -1,0 +1,1642 @@
+[
+    {
+        "sha": "01bce98c3a25e51d1e2aa2b7e30fe61afdc8c270",
+        "node_id": "C_kwDOAQXtWtoAKDAxYmNlOThjM2EyNWU1MWQxZTJhYTJiN2UzMGZlNjFhZmRjOGMyNzA",
+        "commit": {
+            "author": {
+                "name": "Max Gekk",
+                "email": "max.gekk@gmail.com",
+                "date": "2026-09-26T07:45:52Z"
+            },
+            "committer": {
+                "name": "Max Gekk",
+                "email": "max.gekk@gmail.com",
+                "date": "2026-09-26T07:45:52Z"
+            },
+            "message": "[SPARK-59783][SQL] Keep the caller of split functions JIT-compilable\n\n### What changes were proposed in this pull request?\n\n`CodegenContext.splitExpressions` splits the generated code of expressions into functions of at most `spark.sql.codegen.methodSplitThreshold` characters, but leaves one call per split function in the calling method, and nothing bounds how many there are. This PR bounds them, in the two places they pile up:\n\n1. **The caller.** A call and its fold compile to at most about 20 bytes plus 2 per argument. When the calls do not fit in half of the 8000 bytes HotSpot compiles, they are put into functions of eight calls each, level by level, until the rest fit. A caller that already compiles is left exactly as it is.\n2. **The merged method of an inner class.** `generateInnerClassesFunctionCalls` merges all of an inner class's split functions into one method, with no limit on how many. Past the same bound it now merges them into several methods instead.\n\nA group is folded with the caller's `foldFunctions` and wrapped with its `makeSplitFunction`. That is what `generateInnerClassesFunctionCalls` already does with an inner class's functions, so every caller of `splitExpressions` supports it. For `CaseWhen`, for example, a group runs its calls inside its own `do { ... } while (false)` and returns the result state, like the split functions themselves.\n\nThe groups are small on purpose. The size was chosen with `-XX:+PrintInlining`. With groups of about 180 calls, which still compile, C2 refuses most of the split functions at its inlining budget (361 refused, 80 inlined), and the query below runs about 35% slower. With groups of four, most are inlined (464 inlined, 111 refused).\n\n### Why are the changes needed?\n\nWhen an expression's code splits into hundreds of functions, as a `CASE WHEN` of a thousand branches does, the calls alone take the method holding them past the 8000 bytes HotSpot compiles (`-XX:+DontCompileHugeMethods`). That method is the one every row goes through, and it runs interpreted.\n\nWith whole-stage codegen off, `SELECT CASE WHEN v = 1 THEN v * 1 ... WHEN v = 1000 THEN v * 1000 ELSE 0 END FROM (SELECT id % 1000 AS v FROM range(2000000))` generates a method holding the calls that is 8060 bytes. Spark logs it as too long to be JIT compiled, and `-XX:+PrintCompilation` shows it is never compiled. A run takes about 11.1 s on a laptop. With this change no generated method is too long, and a run takes about 1.7 s.\n\nInside whole-stage codegen the same `CASE WHEN` is not split at all today; SPARK-33301 is a separate change for that case, which builds on this one.\n\n### Does this PR introduce _any_ user-facing change?\n\nNo, other than the performance of queries whose expressions split into many functions.\n\n### How was this patch tested?\n\nNew tests in `CodeGenerationSuite`, one per caller of `splitExpressions`: `CASE WHEN`, `COALESCE`, `IN`, the hash expressions (`Murmur3Hash`, `XxHash64`) and `GenerateOrdering`. Each builds the expression wide enough to split into many functions, checks the answer, and asserts that Spark logs no generated method too long to be JIT compiled. Each test fails without this change.\n\nExisting suites: `CodeGenerationSuite`, `CodeGenExprElimSuite`, `ConditionalExpressionSuite`, `HashExpressionsSuite`, `OrderingSuite`, `PredicateSuite`, `NullExpressionsSuite`, `StringExpressionsSuite`, `SubexpressionEliminationSuite`, `WithExpressionEvalSuite`, `GeneratedProjectionSuite`, `UnsafeRowConverterSuite` and `ComplexTypeSuite` in catalyst; `WholeStageCodegenSuite`, `DataFrameSuite`, `SQLQuerySuite`, `DataFrameAggregateSuite`, `TPCDSQuerySuite` and `TPCHQuerySuite` in sql.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: Claude Code (Claude Opus 5.5)\n\nCloses #59042 from MaxGekk/SPARK-59783.\n\nAuthored-by: Max Gekk <max.gekk@gmail.com>\nSigned-off-by: Max Gekk <max.gekk@gmail.com>",
+            "tree": {
+                "sha": "7da55c208425cf35947693a611abf20c08949c4b",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/7da55c208425cf35947693a611abf20c08949c4b"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/01bce98c3a25e51d1e2aa2b7e30fe61afdc8c270",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/01bce98c3a25e51d1e2aa2b7e30fe61afdc8c270",
+        "html_url": "https://github.com/apache/spark/commit/01bce98c3a25e51d1e2aa2b7e30fe61afdc8c270",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/01bce98c3a25e51d1e2aa2b7e30fe61afdc8c270/comments",
+        "author": {
+            "login": "MaxGekk",
+            "id": 1580697,
+            "node_id": "MDQ6VXNlcjE1ODA2OTc=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/1580697?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MaxGekk",
+            "html_url": "https://github.com/MaxGekk",
+            "followers_url": "https://api.github.com/users/MaxGekk/followers",
+            "following_url": "https://api.github.com/users/MaxGekk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MaxGekk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MaxGekk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MaxGekk/subscriptions",
+            "organizations_url": "https://api.github.com/users/MaxGekk/orgs",
+            "repos_url": "https://api.github.com/users/MaxGekk/repos",
+            "events_url": "https://api.github.com/users/MaxGekk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MaxGekk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "MaxGekk",
+            "id": 1580697,
+            "node_id": "MDQ6VXNlcjE1ODA2OTc=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/1580697?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MaxGekk",
+            "html_url": "https://github.com/MaxGekk",
+            "followers_url": "https://api.github.com/users/MaxGekk/followers",
+            "following_url": "https://api.github.com/users/MaxGekk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MaxGekk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MaxGekk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MaxGekk/subscriptions",
+            "organizations_url": "https://api.github.com/users/MaxGekk/orgs",
+            "repos_url": "https://api.github.com/users/MaxGekk/repos",
+            "events_url": "https://api.github.com/users/MaxGekk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MaxGekk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "8ee38e3cab354463cc82bf4d7b24f44b116193e3",
+                "url": "https://api.github.com/repos/apache/spark/commits/8ee38e3cab354463cc82bf4d7b24f44b116193e3",
+                "html_url": "https://github.com/apache/spark/commit/8ee38e3cab354463cc82bf4d7b24f44b116193e3"
+            }
+        ]
+    },
+    {
+        "sha": "8ee38e3cab354463cc82bf4d7b24f44b116193e3",
+        "node_id": "C_kwDOAQXtWtoAKDhlZTM4ZTNjYWIzNTQ0NjNjYzgyYmY0ZDdiMjRmNDRiMTE2MTkzZTM",
+        "commit": {
+            "author": {
+                "name": "Charlie Chen",
+                "email": "jchen264@uw.edu",
+                "date": "2026-09-26T03:43:50Z"
+            },
+            "committer": {
+                "name": "Holden Karau",
+                "email": "holden.karau@snowflake.com",
+                "date": "2026-09-26T03:43:50Z"
+            },
+            "message": "[SPARK-59028][PYTHON] Make UDF category inference linear\n\n### What changes were proposed in this pull request?\n\nCache Catalyst UDF category inference by AST node while lowering each transpilation variant. The cache is reset for every variant because parameter-category assumptions can differ between variants.\n\nThe pull request also adds a regression test with a long addition expression and verifies that uncached category computations are bounded by the AST size.\n\n### Why are the changes needed?\n\nCategory inference recursively revisited the same subtrees while converting nested expressions. For a left-deep expression, this made transpilation quadratic in the expression size. Memoizing each node keeps inference linear without changing the generated Catalyst expression.\n\n### Does this PR introduce _any_ user-facing change?\n\nNo. It improves the performance of Python UDF transpilation only.\n\n### How was this patch tested?\n\n- `build/sbt -Phive package`\n- `python/run-tests --testnames pyspark.sql.tests.test_udf_transpile_unit`\n- `dev/lint-python --ruff`\n- `dev/lint-python --compile --custom-pyspark-error`\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: OpenAI Codex (GPT-5)\n\nCloses #58400 from charliec05/codex/spark-59028-linear-category-inference.\n\nAuthored-by: Charlie Chen <jchen264@uw.edu>\nSigned-off-by: Holden Karau <holden.karau@snowflake.com>",
+            "tree": {
+                "sha": "13f1da99afcea60dde34013f354fcf31a15c1bad",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/13f1da99afcea60dde34013f354fcf31a15c1bad"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/8ee38e3cab354463cc82bf4d7b24f44b116193e3",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/8ee38e3cab354463cc82bf4d7b24f44b116193e3",
+        "html_url": "https://github.com/apache/spark/commit/8ee38e3cab354463cc82bf4d7b24f44b116193e3",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/8ee38e3cab354463cc82bf4d7b24f44b116193e3/comments",
+        "author": {
+            "login": "charliec05",
+            "id": 158111065,
+            "node_id": "U_kgDOCWyVWQ",
+            "avatar_url": "https://avatars.githubusercontent.com/u/158111065?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/charliec05",
+            "html_url": "https://github.com/charliec05",
+            "followers_url": "https://api.github.com/users/charliec05/followers",
+            "following_url": "https://api.github.com/users/charliec05/following{/other_user}",
+            "gists_url": "https://api.github.com/users/charliec05/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/charliec05/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/charliec05/subscriptions",
+            "organizations_url": "https://api.github.com/users/charliec05/orgs",
+            "repos_url": "https://api.github.com/users/charliec05/repos",
+            "events_url": "https://api.github.com/users/charliec05/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/charliec05/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "sfc-gh-hkarau",
+            "id": 237870419,
+            "node_id": "U_kgDODi2dUw",
+            "avatar_url": "https://avatars.githubusercontent.com/u/237870419?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/sfc-gh-hkarau",
+            "html_url": "https://github.com/sfc-gh-hkarau",
+            "followers_url": "https://api.github.com/users/sfc-gh-hkarau/followers",
+            "following_url": "https://api.github.com/users/sfc-gh-hkarau/following{/other_user}",
+            "gists_url": "https://api.github.com/users/sfc-gh-hkarau/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/sfc-gh-hkarau/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/sfc-gh-hkarau/subscriptions",
+            "organizations_url": "https://api.github.com/users/sfc-gh-hkarau/orgs",
+            "repos_url": "https://api.github.com/users/sfc-gh-hkarau/repos",
+            "events_url": "https://api.github.com/users/sfc-gh-hkarau/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/sfc-gh-hkarau/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "9cf426e826b2f1fb25fdc55c708bb5b5c0bc5b99",
+                "url": "https://api.github.com/repos/apache/spark/commits/9cf426e826b2f1fb25fdc55c708bb5b5c0bc5b99",
+                "html_url": "https://github.com/apache/spark/commit/9cf426e826b2f1fb25fdc55c708bb5b5c0bc5b99"
+            }
+        ]
+    },
+    {
+        "sha": "9cf426e826b2f1fb25fdc55c708bb5b5c0bc5b99",
+        "node_id": "C_kwDOAQXtWtoAKDljZjQyNmU4MjZiMmYxZmIyNWZkYzU1YzcwOGJiNWI1YzBiYzViOTk",
+        "commit": {
+            "author": {
+                "name": "jzhan-2026",
+                "email": "jzhan0514@gmail.com",
+                "date": "2026-09-26T03:16:33Z"
+            },
+            "committer": {
+                "name": "Holden Karau",
+                "email": "holden.karau@snowflake.com",
+                "date": "2026-09-26T03:16:33Z"
+            },
+            "message": "[SPARK-56925][PYTHON][SQL] Support bare `if x` in UDF transpilation\n\n### What changes were proposed in this pull request?\n\nAllows the Python UDF transpiler to handle bare parameter names as if/ternary conditions, e.g. `lambda s: s if s else \"default\"`.\n\nAdds `_truthiness_col` to lower Python truthiness per category:\n- `bool`: `coalesce(c, False)`\n- `string`: `coalesce(length(c) > 0, False)`\n- `numeric`: `coalesce(c != 0, False)` (NaN is truthy, matching Python)\n\n`binary` parameters still fall back to interpreted Python.\n\n### Why are the changes needed?\n\nThese idiomatic patterns always fell back to interpreted Python. After SPARK-59091 added per-parameter categories, we have enough type info to lower them correctly.\n\n### Does this PR introduce _any_ user-facing change?\n\nNo direct user facing change. The above UDF patterns now transpile to native Catalyst instead of falling back to interpreted Python.\n\n### How was this patch tested?\n\nAdded `test_udf_transpile_bare_if_truthiness` covering int, string, float, and bool columns, verifying zero Python eval nodes and correct values. Updated the existing fallback test to cover binary only.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nCo-authored by: Claude Sonnet 4.6\n\nCloses #58961 from jzhan-2026/spark-56925-bare-if.\n\nAuthored-by: jzhan-2026 <jzhan0514@gmail.com>\nSigned-off-by: Holden Karau <holden.karau@snowflake.com>",
+            "tree": {
+                "sha": "2f58e03cc78a6ddf6ac9a59a298ea33b488999f4",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/2f58e03cc78a6ddf6ac9a59a298ea33b488999f4"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/9cf426e826b2f1fb25fdc55c708bb5b5c0bc5b99",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/9cf426e826b2f1fb25fdc55c708bb5b5c0bc5b99",
+        "html_url": "https://github.com/apache/spark/commit/9cf426e826b2f1fb25fdc55c708bb5b5c0bc5b99",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/9cf426e826b2f1fb25fdc55c708bb5b5c0bc5b99/comments",
+        "author": {
+            "login": "jzhan-2026",
+            "id": 318357919,
+            "node_id": "U_kgDOEvnBnw",
+            "avatar_url": "https://avatars.githubusercontent.com/u/318357919?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/jzhan-2026",
+            "html_url": "https://github.com/jzhan-2026",
+            "followers_url": "https://api.github.com/users/jzhan-2026/followers",
+            "following_url": "https://api.github.com/users/jzhan-2026/following{/other_user}",
+            "gists_url": "https://api.github.com/users/jzhan-2026/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/jzhan-2026/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/jzhan-2026/subscriptions",
+            "organizations_url": "https://api.github.com/users/jzhan-2026/orgs",
+            "repos_url": "https://api.github.com/users/jzhan-2026/repos",
+            "events_url": "https://api.github.com/users/jzhan-2026/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/jzhan-2026/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "sfc-gh-hkarau",
+            "id": 237870419,
+            "node_id": "U_kgDODi2dUw",
+            "avatar_url": "https://avatars.githubusercontent.com/u/237870419?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/sfc-gh-hkarau",
+            "html_url": "https://github.com/sfc-gh-hkarau",
+            "followers_url": "https://api.github.com/users/sfc-gh-hkarau/followers",
+            "following_url": "https://api.github.com/users/sfc-gh-hkarau/following{/other_user}",
+            "gists_url": "https://api.github.com/users/sfc-gh-hkarau/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/sfc-gh-hkarau/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/sfc-gh-hkarau/subscriptions",
+            "organizations_url": "https://api.github.com/users/sfc-gh-hkarau/orgs",
+            "repos_url": "https://api.github.com/users/sfc-gh-hkarau/repos",
+            "events_url": "https://api.github.com/users/sfc-gh-hkarau/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/sfc-gh-hkarau/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "414f7384487bf02c0a14c991ac6746ff8ecc916f",
+                "url": "https://api.github.com/repos/apache/spark/commits/414f7384487bf02c0a14c991ac6746ff8ecc916f",
+                "html_url": "https://github.com/apache/spark/commit/414f7384487bf02c0a14c991ac6746ff8ecc916f"
+            }
+        ]
+    },
+    {
+        "sha": "414f7384487bf02c0a14c991ac6746ff8ecc916f",
+        "node_id": "C_kwDOAQXtWtoAKDQxNGY3Mzg0NDg3YmYwMmMwYTE0Yzk5MWFjNjc0NmZmOGVjYzkxNmY",
+        "commit": {
+            "author": {
+                "name": "Holden Karau",
+                "email": "holden@pigscanfly.ca",
+                "date": "2026-09-26T02:57:53Z"
+            },
+            "committer": {
+                "name": "Holden Karau",
+                "email": "holden.karau@snowflake.com",
+                "date": "2026-09-26T02:57:53Z"
+            },
+            "message": "[SPARK-59333][CORE] Apply a serialization filter when recovering Master state from ZooKeeper\n\n### What changes were proposed in this pull request?\n\nHarden deserialization when the standalone master recovers state from ZooKeeper.\n\nThis is done by a new config `spark.deploy.recoverySerializationFilter` (default\n  `java.**;scala.**;org.apache.spark.**;!*`, which covers `ApplicationInfo`, `DriverInfo`,\n  `WorkerInfo` and their fields). `*` disables filtering; values that yield no filter (empty,\n  `;`) are rejected when the config is read. Znodes rejected by the filter are skipped, not\n  deleted.\n\nThis does not replace the need for ZK ACLs, which remain the access control for the recovery\nstate.\n\n### Why are the changes needed?\n\nIf we're recovering from failure, the recovery state may contain unexpected classes;\nrestricting what gets instantiated limits what a corrupted or unexpected znode can do.\n\n### Does this PR introduce _any_ user-facing change?\n\nConfigurable filtering on classes during ZK recovery using `spark.deploy.recoverySerializationFilter`.\n\n### How was this patch tested?\n\nNew unit test in `PersistenceEngineSuite`\n\n### Was this patch authored or co-authored using generative AI tooling?\nYes\nGenerated-by: Claude (mixture of version, mostly Opus 5) and Cursor (Kimi K3)\n\nCloses #58620 from holdenk/zk-recovery-data-validation.\n\nLead-authored-by: Holden Karau <holden@pigscanfly.ca>\nCo-authored-by: Holden Karau <holden.karau@snowflake.com>\nSigned-off-by: Holden Karau <holden.karau@snowflake.com>",
+            "tree": {
+                "sha": "d248c9c3e591784f209ee70f1b5cbe0801e83884",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/d248c9c3e591784f209ee70f1b5cbe0801e83884"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/414f7384487bf02c0a14c991ac6746ff8ecc916f",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/414f7384487bf02c0a14c991ac6746ff8ecc916f",
+        "html_url": "https://github.com/apache/spark/commit/414f7384487bf02c0a14c991ac6746ff8ecc916f",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/414f7384487bf02c0a14c991ac6746ff8ecc916f/comments",
+        "author": {
+            "login": "holdenk",
+            "id": 59893,
+            "node_id": "MDQ6VXNlcjU5ODkz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59893?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/holdenk",
+            "html_url": "https://github.com/holdenk",
+            "followers_url": "https://api.github.com/users/holdenk/followers",
+            "following_url": "https://api.github.com/users/holdenk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/holdenk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/holdenk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/holdenk/subscriptions",
+            "organizations_url": "https://api.github.com/users/holdenk/orgs",
+            "repos_url": "https://api.github.com/users/holdenk/repos",
+            "events_url": "https://api.github.com/users/holdenk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/holdenk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "sfc-gh-hkarau",
+            "id": 237870419,
+            "node_id": "U_kgDODi2dUw",
+            "avatar_url": "https://avatars.githubusercontent.com/u/237870419?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/sfc-gh-hkarau",
+            "html_url": "https://github.com/sfc-gh-hkarau",
+            "followers_url": "https://api.github.com/users/sfc-gh-hkarau/followers",
+            "following_url": "https://api.github.com/users/sfc-gh-hkarau/following{/other_user}",
+            "gists_url": "https://api.github.com/users/sfc-gh-hkarau/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/sfc-gh-hkarau/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/sfc-gh-hkarau/subscriptions",
+            "organizations_url": "https://api.github.com/users/sfc-gh-hkarau/orgs",
+            "repos_url": "https://api.github.com/users/sfc-gh-hkarau/repos",
+            "events_url": "https://api.github.com/users/sfc-gh-hkarau/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/sfc-gh-hkarau/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "13107cea491245df40d4688a0df0cd837e3a7615",
+                "url": "https://api.github.com/repos/apache/spark/commits/13107cea491245df40d4688a0df0cd837e3a7615",
+                "html_url": "https://github.com/apache/spark/commit/13107cea491245df40d4688a0df0cd837e3a7615"
+            }
+        ]
+    },
+    {
+        "sha": "13107cea491245df40d4688a0df0cd837e3a7615",
+        "node_id": "C_kwDOAQXtWtoAKDEzMTA3Y2VhNDkxMjQ1ZGY0MGQ0Njg4YTBkZjBjZDgzN2UzYTc2MTU",
+        "commit": {
+            "author": {
+                "name": "Holden Karau",
+                "email": "holden@pigscanfly.ca",
+                "date": "2026-09-26T02:48:13Z"
+            },
+            "committer": {
+                "name": "Holden Karau",
+                "email": "holden.karau@snowflake.com",
+                "date": "2026-09-26T02:48:13Z"
+            },
+            "message": "[SPARK-59404][CORE] Match REST environment filtering in standalone Client submission\n\n### What changes were proposed in this pull request?\nThe legacy standalone Client built the driver Command with the submitter's full environment. Moves the filtering rule out of `RestSubmissionClient` into a neutral `org.apache.spark.deploy.DriverEnvironment` so both submission paths forward the same Spark-relevant variables.\n\nDrivers in standalone cluster mode no longer inherit unrelated client environment variables through this path; spark.* settings continue to flow via sparkJavaOpts as before.\n\n### Why are the changes needed?\n\nUser env variables can be confusing if they end up deployed and could accidentally use an individual users tokens instead of system configured etc.\n\n### Does this PR introduce _any_ user-facing change?\n\nIn standalone cluster mode when deploying without the REST gateway, the driver previously received the full environment of the submitting process. It now receives only `SPARK_*` variables, excluding `SPARK_ENV_LOADED`, `SPARK_HOME`, `SPARK_CONF_DIR`, `SPARK_LOCAL_IP`, and `SPARK_LOCAL_HOSTNAME`. Variables such as `JAVA_HOME`, `HADOOP_CONF_DIR`, `YARN_CONF_DIR`, and `LD_LIBRARY_PATH` no longer reach the driver. To restore _most of_ the legacy behavior, set `spark.standalone.submit.filterEnvironment` to `false`.\n\n`SPARK_LOCAL_IP` and `SPARK_LOCAL_HOSTNAME` are always filtered even if `spark.standalone.submit.filterEnvironment` is set to `false`.\n\n### How was this patch tested?\nExisting UT & new unit tests in `ClientSuite.scala` and `StandaloneRestSubmitSuite.scala`.\n\n### Was this patch authored or co-authored using generative AI tooling?\nGenerated-by: Claude (Opus 5 & Fable 5.1) and Cursor (with Kimi K3)\n\nCloses #58696 from holdenk/f45-standalone-env.\n\nLead-authored-by: Holden Karau <holden@pigscanfly.ca>\nCo-authored-by: Holden Karau <holden.karau@snowflake.com>\nSigned-off-by: Holden Karau <holden.karau@snowflake.com>",
+            "tree": {
+                "sha": "4fe240a5af4d02aa4fa5a57b27a08481d9e97772",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/4fe240a5af4d02aa4fa5a57b27a08481d9e97772"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/13107cea491245df40d4688a0df0cd837e3a7615",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/13107cea491245df40d4688a0df0cd837e3a7615",
+        "html_url": "https://github.com/apache/spark/commit/13107cea491245df40d4688a0df0cd837e3a7615",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/13107cea491245df40d4688a0df0cd837e3a7615/comments",
+        "author": {
+            "login": "holdenk",
+            "id": 59893,
+            "node_id": "MDQ6VXNlcjU5ODkz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59893?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/holdenk",
+            "html_url": "https://github.com/holdenk",
+            "followers_url": "https://api.github.com/users/holdenk/followers",
+            "following_url": "https://api.github.com/users/holdenk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/holdenk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/holdenk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/holdenk/subscriptions",
+            "organizations_url": "https://api.github.com/users/holdenk/orgs",
+            "repos_url": "https://api.github.com/users/holdenk/repos",
+            "events_url": "https://api.github.com/users/holdenk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/holdenk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "sfc-gh-hkarau",
+            "id": 237870419,
+            "node_id": "U_kgDODi2dUw",
+            "avatar_url": "https://avatars.githubusercontent.com/u/237870419?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/sfc-gh-hkarau",
+            "html_url": "https://github.com/sfc-gh-hkarau",
+            "followers_url": "https://api.github.com/users/sfc-gh-hkarau/followers",
+            "following_url": "https://api.github.com/users/sfc-gh-hkarau/following{/other_user}",
+            "gists_url": "https://api.github.com/users/sfc-gh-hkarau/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/sfc-gh-hkarau/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/sfc-gh-hkarau/subscriptions",
+            "organizations_url": "https://api.github.com/users/sfc-gh-hkarau/orgs",
+            "repos_url": "https://api.github.com/users/sfc-gh-hkarau/repos",
+            "events_url": "https://api.github.com/users/sfc-gh-hkarau/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/sfc-gh-hkarau/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "f4327af76197334dbf893a6f7ae34e2d4a096c5f",
+                "url": "https://api.github.com/repos/apache/spark/commits/f4327af76197334dbf893a6f7ae34e2d4a096c5f",
+                "html_url": "https://github.com/apache/spark/commit/f4327af76197334dbf893a6f7ae34e2d4a096c5f"
+            }
+        ]
+    },
+    {
+        "sha": "f4327af76197334dbf893a6f7ae34e2d4a096c5f",
+        "node_id": "C_kwDOAQXtWtoAKGY0MzI3YWY3NjE5NzMzNGRiZjg5M2E2ZjdhZTM0ZTJkNGEwOTZjNWY",
+        "commit": {
+            "author": {
+                "name": "Timothy Meehan",
+                "email": "tim@timdmeehan.com",
+                "date": "2026-09-26T02:47:05Z"
+            },
+            "committer": {
+                "name": "Wenchen Fan",
+                "email": "wenchen@databricks.com",
+                "date": "2026-09-26T02:47:05Z"
+            },
+            "message": "[SPARK-59417][SQL] Stream multiline top-level JSON arrays\n\n### What changes were proposed in this pull request?\n\nThis PR adds the Spark SQL configuration `spark.sql.json.enableStreamingTopLevelArray` and the per-read JSON option `enableStreamingTopLevelArray`, which overrides it. When enabled, reading a multiline JSON file consumes a top-level array of structs lazily from one Jackson parser instead of materializing the entire array before returning rows. Both default to false. The two paths agree on valid input but differ on malformed input, described below, so this is a choice a read makes rather than a switch to be flipped once.\n\nIt also adds an opt-in lazy path to `FailureSafeParser` for failures raised while advancing the parser iterator, preserves rows emitted before later structural corruption, and adds benchmark cases for both many small elements and fewer large elements. Existing eager `FailureSafeParser` callers remain unchanged.\n\nA malformed element is resumed from only where the parser cannot have moved past it: a scalar element leaves the parser on that scalar's own token, and `convertObject` consumes through the closing brace before reporting a partial result. Any other container failure can stop anywhere inside its element, so it ends the document as before.\n\nBecause the streaming iterator holds a `JsonParser` for the life of the read, it registers `close()` with the active `TaskContext` completion listener in addition to closing eagerly when the array ends or a terminal failure occurs. An iterator abandoned before the closing bracket (under a `LIMIT`, for example) therefore releases the parser when the task finishes rather than at GC. The listener has no removal API, so the parser is held in a cell that every close path clears before closing; otherwise a completed read leaves a closed parser reachable from the task, keeping its buffer alive, which matters where one task builds many parsers such as an archive read. Both multiline readers also memoize the whole-document corrupt-record literal they hand to the parser, so it is built once per read instead of once per malformed element.\n\n### Why are the changes needed?\n\nThe existing parser materializes every element of a multiline top-level JSON array in memory. Large arrays can therefore require memory proportional to the complete document even though Spark consumes the result as an iterator. Streaming elements bounds parser-side memory, producing the same rows as the eager path for valid input. For malformed input it changes which unit a parse mode applies to, which is why the path is opt-in rather than the default.\n\n### Does this PR introduce _any_ user-facing change?\n\nYes, when the configuration or the JSON option is enabled. Reading a multiline top-level JSON array no longer materializes the complete array before producing rows, and the record a parse mode applies to becomes one array element rather than the whole document. This follows from streaming: rows already handed to the consumer cannot be withdrawn or retroactively stamped, so preserving the document as the record would mean buffering to the closing bracket.\n\nReading `[{\"a\":1},<malformed>,{\"a\":2}]` under `PERMISSIVE` with schema `a int, _corrupt_record string`, writing `D` for the whole document:\n\n| malformed element | disabled | enabled |\n| --- | --- | --- |\n| `{\"a\":\"bad\"}` | `(1, D)`, `(null, D)`, `(2, D)` | `(1, null)`, `(null, D)`, `(2, null)` |\n| `42` | `(null, D)` | `(1, null)`, `(null, D)`, `(2, null)` |\n| `[1,2]` | `(null, D)` | `(1, null)`, `(null, D)` |\n\n`DROPMALFORMED` drops the corrupt row of each cell, which leaves no rows at all when disabled since every row carries the document's corruption. `FAILFAST` raises `MALFORMED_RECORD_IN_PARSING.WITHOUT_SUGGESTION` in both columns.\n\nThe last row is the element whose failure leaves the parser at an unknown position, so enabling the configuration keeps the rows before it and still ends the document there. The configuration doc says so.\n\nOne consequence reaches valid documents of a shape the eager path never supported: a top-level array whose elements are all scalars, such as `[1,2,3]`, is malformed against a struct schema in every element, so it reports one corrupt record per element where the whole document reported one. Object elements already behaved that way, through the partial-result path the eager reader has always had.\n\nValid input is unaffected, and both the configuration and the option default to false.\n\n### How was this patch tested?\n\nAdded regression coverage for lazy top-level array parsing, for the JSON option overriding the session configuration in both directions, and for malformed input after partial output under PERMISSIVE, DROPMALFORMED, and FAILFAST with the configuration both disabled and enabled, so every cell of the table above is pinned in both columns. The three element shapes are parameterized over one document, which pins the nested array as the shape that must stay terminal, so a resumability rule that is too broad fails. Extended the existing SPARK-3308 top-level-array coverage, and made the existing SPARK-18352 multiline corrupt-document expectations configuration-dependent, which is where the all-scalar array above is pinned. The archive suites exercise the same matrix through the pre-buffered `readStream` path.\n\nTwo further cases cover a truncated array (`[{\"a\":1}` with no closing bracket) and an iterator abandoned mid-array, asserting the parser's stream is closed once the task completes. The truncated array reaches the malformed-record arm rather than the iterator's end-of-input branch: jackson-core throws `JsonEOFException` while the array context is still open, so that branch is unreachable today and is kept only so a backend that returns null cannot fall through with no current token. Parser lifetime is covered over empty, empty-array, valid, and truncated documents by counting both the rows each yields and its `close()` calls, through a `JsonParserDelegate`: exactly one close before task completion and none added by it, so a parser still retained after its close fails the test. Those four documents are also the four ways the iterator can end, so the zero-row branches are held to zero rows and to closing.\n\nRan:\n\n- `sql/Test/compile`\n- `sql/testOnly *JsonV1Suite *JsonV2Suite` (431 tests)\n- `sql/testOnly *JsonV1Suite *JsonV2Suite *JsonParsingOptionsSuite *ExplodeEmbeddedArrayJsonV1Suite *ExplodeEmbeddedArrayJsonV2Suite *JSONTarArchiveReadSuite *JSONZipArchiveReadSuite *JSONSevenZArchiveReadSuite` (569 tests)\n- `catalyst/testOnly *JsonExpressionsSuite *JacksonParserSuite *JsonSuite` (140 tests)\n- `sql/testOnly *JsonFunctionsSuite` (115 tests)\n- `catalyst/scalastyle`\n- `sql/scalastyle`\n- `catalyst/Test/scalastyle`\n- `sql/Test/scalastyle`\n- `git diff --check`\n\nThe focused OSS benchmark can be run with:\n\n```\nbuild/sbt \"sql/Test/runMain org.apache.spark.sql.execution.datasources.json.JsonBenchmark top-level-array\"\n```\n\nThe benchmark reads multiline JSON through the data source with `spark.sql.json.enableStreamingTopLevelArray` disabled and enabled. On OpenJDK 17.0.15 and Intel Xeon 6975P:\n\n- 100,000 rows with empty payloads: disabled 69 ms; enabled 42 ms.\n- 1,000 rows with 64 KiB payloads: disabled 127 ms; enabled 118 ms.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: OpenAI Codex (GPT-5)\nGenerated-by: Isaac (Claude Opus 5)\n\nThis pull request and its description were written by Isaac.\n\nCloses #58704 from tdcmeehan/tim/sc-173438-stream-json-root-array-oss.\n\nAuthored-by: Timothy Meehan <tim@timdmeehan.com>\nSigned-off-by: Wenchen Fan <wenchen@databricks.com>",
+            "tree": {
+                "sha": "58395adc76f629aa7d6b03180b46c7e2a9b92b52",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/58395adc76f629aa7d6b03180b46c7e2a9b92b52"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/f4327af76197334dbf893a6f7ae34e2d4a096c5f",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/f4327af76197334dbf893a6f7ae34e2d4a096c5f",
+        "html_url": "https://github.com/apache/spark/commit/f4327af76197334dbf893a6f7ae34e2d4a096c5f",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/f4327af76197334dbf893a6f7ae34e2d4a096c5f/comments",
+        "author": {
+            "login": "tdcmeehan",
+            "id": 7980573,
+            "node_id": "MDQ6VXNlcjc5ODA1NzM=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/7980573?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/tdcmeehan",
+            "html_url": "https://github.com/tdcmeehan",
+            "followers_url": "https://api.github.com/users/tdcmeehan/followers",
+            "following_url": "https://api.github.com/users/tdcmeehan/following{/other_user}",
+            "gists_url": "https://api.github.com/users/tdcmeehan/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/tdcmeehan/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/tdcmeehan/subscriptions",
+            "organizations_url": "https://api.github.com/users/tdcmeehan/orgs",
+            "repos_url": "https://api.github.com/users/tdcmeehan/repos",
+            "events_url": "https://api.github.com/users/tdcmeehan/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/tdcmeehan/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "cloud-fan",
+            "id": 3182036,
+            "node_id": "MDQ6VXNlcjMxODIwMzY=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/3182036?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/cloud-fan",
+            "html_url": "https://github.com/cloud-fan",
+            "followers_url": "https://api.github.com/users/cloud-fan/followers",
+            "following_url": "https://api.github.com/users/cloud-fan/following{/other_user}",
+            "gists_url": "https://api.github.com/users/cloud-fan/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/cloud-fan/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/cloud-fan/subscriptions",
+            "organizations_url": "https://api.github.com/users/cloud-fan/orgs",
+            "repos_url": "https://api.github.com/users/cloud-fan/repos",
+            "events_url": "https://api.github.com/users/cloud-fan/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/cloud-fan/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "9b37040a25dbe431150e442832cd31438f5061e8",
+                "url": "https://api.github.com/repos/apache/spark/commits/9b37040a25dbe431150e442832cd31438f5061e8",
+                "html_url": "https://github.com/apache/spark/commit/9b37040a25dbe431150e442832cd31438f5061e8"
+            }
+        ]
+    },
+    {
+        "sha": "9b37040a25dbe431150e442832cd31438f5061e8",
+        "node_id": "C_kwDOAQXtWtoAKDliMzcwNDBhMjVkYmU0MzExNTBlNDQyODMyY2QzMTQzOGY1MDYxZTg",
+        "commit": {
+            "author": {
+                "name": "Holden Karau",
+                "email": "holden@pigscanfly.ca",
+                "date": "2026-09-26T02:44:51Z"
+            },
+            "committer": {
+                "name": "Holden Karau",
+                "email": "holden.karau@snowflake.com",
+                "date": "2026-09-26T02:44:51Z"
+            },
+            "message": "[SPARK-55014][SQL] Split projection for expensive filters\n\n### What changes were proposed in this pull request?\n\nFollow up to SPARK-47672. That change stopped `PushPredicateThroughNonJoin` from pushing a filter below a `Project` when the filter references expensive projected aliases, because pushing caused them to be evaluated twice, and parked those conditions above the projection.\n\nThis splits the projection into a stack of `Project`/`Filter` layers instead, so that the expensive expressions a condition does not need are only evaluated for the rows that condition kept:\n\n    Filter f AND g                              Filter g\n      Project a, rlike(e,'magic') AS f,           Project a, f, rlike(e,'other') AS g\n              rlike(e,'other') AS g       -->       Filter f\n        child                                         Project a, e, rlike(e,'magic') AS f\n                                                        child\n\nConditions are grouped by the aliases they reference, and the group needing the fewest not-yet-computed aliases is split off first, breaking ties towards the condition written first. Two restrictions keep the rule from costing more than it saves:\n\n- A projection is only split off while doing so leaves an expensive alias for a later layer. An extra operator has a per-row cost of its own, so it has to buy a real deferral.\n- Aliases sharing an expensive sub-expression are treated as one indivisible unit. Subexpression elimination works within a single projection and cannot reach across a filter, so splitting such aliases apart would evaluate the shared part once for every row below the filter and again for every row that survived it. A struct-returning UDF read field by field is the common shape.\n\nGated on the new `spark.sql.optimizer.splitProjectionForExpensiveFilters` (default true), which also requires `spark.sql.optimizer.avoidDoubleFilterEval`.\n\n### Why are the changes needed?\n\nSPARK-47672 stops the double evaluation but leaves the projection computing every expensive element for every row reaching it, even when a filter above it is about to discard most of them. Whole stage codegen already defers a projected expression past a filter that does not need it (`CodegenSupport.evaluateRequiredVariables`), so what this buys is the same saving on the paths codegen does not cover: interpreted projections, operators it bails out of, and Python UDF evaluation.\n\n### Does this PR introduce _any_ user-facing change?\n\nPlans for queries filtering on expensive projected expressions gain projection/filter layers. Results, schemas and column ordering are unchanged.\n\n### How was this patch tested?\n\nThirteen new plan tests in `FilterPushdownSuite` covering splitting, the ordering heuristic, the no-split cases (a condition needing every expensive element, only cheap elements left to defer, shared expensive work), column ordering, and the config off. Three new end-to-end tests in `DataFrameSuite` count UDF invocations to show the saving is real (30 -> 15), that results match with splitting and codegen each on and off, that the split follows the filter's order rather than the projection's, and that shared expensive work is not split apart.\n\n`PlanStabilitySuite` confirms the TPCDS golden plans are unaffected.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: Claude Opus 5 using my previous work in the original PR as a starting point & Cursor with Kimi K3\n\nCloses #58403 from holdenk/SPARK-55014-split-projection-for-expensive-filters.\n\nLead-authored-by: Holden Karau <holden@pigscanfly.ca>\nCo-authored-by: Holden Karau <holden.karau@snowflake.com>\nSigned-off-by: Holden Karau <holden.karau@snowflake.com>",
+            "tree": {
+                "sha": "acae3698de0e334047221544db4c0aaf2f69cb7e",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/acae3698de0e334047221544db4c0aaf2f69cb7e"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/9b37040a25dbe431150e442832cd31438f5061e8",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/9b37040a25dbe431150e442832cd31438f5061e8",
+        "html_url": "https://github.com/apache/spark/commit/9b37040a25dbe431150e442832cd31438f5061e8",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/9b37040a25dbe431150e442832cd31438f5061e8/comments",
+        "author": {
+            "login": "holdenk",
+            "id": 59893,
+            "node_id": "MDQ6VXNlcjU5ODkz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59893?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/holdenk",
+            "html_url": "https://github.com/holdenk",
+            "followers_url": "https://api.github.com/users/holdenk/followers",
+            "following_url": "https://api.github.com/users/holdenk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/holdenk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/holdenk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/holdenk/subscriptions",
+            "organizations_url": "https://api.github.com/users/holdenk/orgs",
+            "repos_url": "https://api.github.com/users/holdenk/repos",
+            "events_url": "https://api.github.com/users/holdenk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/holdenk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "sfc-gh-hkarau",
+            "id": 237870419,
+            "node_id": "U_kgDODi2dUw",
+            "avatar_url": "https://avatars.githubusercontent.com/u/237870419?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/sfc-gh-hkarau",
+            "html_url": "https://github.com/sfc-gh-hkarau",
+            "followers_url": "https://api.github.com/users/sfc-gh-hkarau/followers",
+            "following_url": "https://api.github.com/users/sfc-gh-hkarau/following{/other_user}",
+            "gists_url": "https://api.github.com/users/sfc-gh-hkarau/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/sfc-gh-hkarau/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/sfc-gh-hkarau/subscriptions",
+            "organizations_url": "https://api.github.com/users/sfc-gh-hkarau/orgs",
+            "repos_url": "https://api.github.com/users/sfc-gh-hkarau/repos",
+            "events_url": "https://api.github.com/users/sfc-gh-hkarau/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/sfc-gh-hkarau/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "f54fe529de91c415befb3d8e8aed833c0f3352b4",
+                "url": "https://api.github.com/repos/apache/spark/commits/f54fe529de91c415befb3d8e8aed833c0f3352b4",
+                "html_url": "https://github.com/apache/spark/commit/f54fe529de91c415befb3d8e8aed833c0f3352b4"
+            }
+        ]
+    },
+    {
+        "sha": "f54fe529de91c415befb3d8e8aed833c0f3352b4",
+        "node_id": "C_kwDOAQXtWtoAKGY1NGZlNTI5ZGU5MWM0MTViZWZiM2Q4ZThhZWQ4MzNjMGYzMzUyYjQ",
+        "commit": {
+            "author": {
+                "name": "Andreas Neumann",
+                "email": "anew@apache.org",
+                "date": "2026-09-25T21:21:33Z"
+            },
+            "committer": {
+                "name": "Szehon Ho",
+                "email": "szehon.apache@gmail.com",
+                "date": "2026-09-25T21:21:33Z"
+            },
+            "message": "[SPARK-59448][SQL] Support IGNORE NULL UPDATES in Auto CDC SQL syntax\n\n### What changes were proposed in this pull request?\n\nAdds an `IGNORE NULL UPDATES` clause to the Declarative Pipelines Auto CDC SQL syntax\n(`CREATE FLOW ... AS AUTO CDC INTO ...` and `CREATE STREAMING TABLE ... FLOW AUTO CDC ...`),\nmatching the partial-update support already exposed over Spark Connect (SPARK-59446) and the\nPython API (SPARK-59447). When set, null values in an incoming update are ignored and the\nexisting target value is preserved.\n\nThe clause has three forms, mirroring the existing `COLUMNS` and `TRACK HISTORY ON` clauses:\n\n- `IGNORE NULL UPDATES` -- ignore nulls on all columns.\n- `IGNORE NULL UPDATES ON (col, ...)` -- ignore nulls only on the listed columns.\n- `IGNORE NULL UPDATES ON * EXCEPT (col, ...)` -- ignore nulls on all columns except those listed.\n\nDetails:\n\n- Grammar (`SqlBaseParser.g4` / `SqlBaseLexer.g4`): adds a new non-reserved keyword `UPDATES`\n  and an `autoCdcIgnoreNullClause` rule wired into `autoCdcParameters`.\n- Catalyst: `AutoCdcParams`, `AutoCdcInto`, and `CreateStreamingTableAutoCdc` carry\n  `ignoreNullUpdates: Boolean` plus the include/except column lists; `AstBuilder` parses the\n  clause (rejecting a duplicate clause), and both build sites forward the fields.\n- Dataflow graph: `SqlGraphRegistrationContext.buildChangeArgs` maps the parsed clause onto\n  `ChangeArgs.ignoreNullSelection`. Unlike the column and track-history selections, \"all columns\"\n  is distinct from \"absent\": the bare clause becomes an empty `ExcludeColumns` selection, while an\n  absent clause leaves ignore-null updates off (`None`).\n\nExecution of ignore-null updates is handled separately (SPARK-59183) and is out of scope here.\n\n### Why are the changes needed?\n\nAuto CDC ignore-null updates were reachable over Spark Connect and the Python API but not from\nthe SQL syntax. This change closes that gap so the feature is available across all Declarative\nPipelines authoring surfaces.\n\n### Does this PR introduce _any_ user-facing change?\n\nYes. The Auto CDC SQL syntax gains an `IGNORE NULL UPDATES [ON ...]` clause, and `UPDATES` becomes\na non-reserved keyword.\n\n### How was this patch tested?\n\n- `AutoCdcParserSuite`: new positive parse tests for all three forms under both\n  `CREATE FLOW ... AS AUTO CDC INTO` and `CREATE STREAMING TABLE ... FLOW AUTO CDC`, plus\n  clause-ordering, duplicate-clause rejection, missing-parentheses rejection, and a test that the\n  new `UPDATES` keyword remains usable as an identifier. The previous negative test asserting the\n  clause was unsupported is replaced.\n- `SqlPipelineSuite`: new tests asserting the resulting `ChangeArgs.ignoreNullSelection` for the\n  all-columns, include-list, and except-list forms, and that an absent clause leaves it unset.\n- `UnsupportedOperationsSuite`: updated for the new plan fields.\n- Regenerated the `keywords.sql.out` golden files and updated the JDBC and Thrift server keyword\n  expectations for the new `UPDATES` keyword; refreshed the ANSI compliance keyword table.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: Opus 4.8\n\nCloses #58986 from anew/SPARK-59448-autocdc-ignore-null-updates-sql.\n\nAuthored-by: Andreas Neumann <anew@apache.org>\nSigned-off-by: Szehon Ho <szehon.apache@gmail.com>",
+            "tree": {
+                "sha": "d40b0764a4a90664f6665c1b60141c4ef7ec16c1",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/d40b0764a4a90664f6665c1b60141c4ef7ec16c1"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/f54fe529de91c415befb3d8e8aed833c0f3352b4",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/f54fe529de91c415befb3d8e8aed833c0f3352b4",
+        "html_url": "https://github.com/apache/spark/commit/f54fe529de91c415befb3d8e8aed833c0f3352b4",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/f54fe529de91c415befb3d8e8aed833c0f3352b4/comments",
+        "author": {
+            "login": "anew",
+            "id": 483004,
+            "node_id": "MDQ6VXNlcjQ4MzAwNA==",
+            "avatar_url": "https://avatars.githubusercontent.com/u/483004?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/anew",
+            "html_url": "https://github.com/anew",
+            "followers_url": "https://api.github.com/users/anew/followers",
+            "following_url": "https://api.github.com/users/anew/following{/other_user}",
+            "gists_url": "https://api.github.com/users/anew/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/anew/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/anew/subscriptions",
+            "organizations_url": "https://api.github.com/users/anew/orgs",
+            "repos_url": "https://api.github.com/users/anew/repos",
+            "events_url": "https://api.github.com/users/anew/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/anew/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "szehon-ho",
+            "id": 20555759,
+            "node_id": "MDQ6VXNlcjIwNTU1NzU5",
+            "avatar_url": "https://avatars.githubusercontent.com/u/20555759?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/szehon-ho",
+            "html_url": "https://github.com/szehon-ho",
+            "followers_url": "https://api.github.com/users/szehon-ho/followers",
+            "following_url": "https://api.github.com/users/szehon-ho/following{/other_user}",
+            "gists_url": "https://api.github.com/users/szehon-ho/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/szehon-ho/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/szehon-ho/subscriptions",
+            "organizations_url": "https://api.github.com/users/szehon-ho/orgs",
+            "repos_url": "https://api.github.com/users/szehon-ho/repos",
+            "events_url": "https://api.github.com/users/szehon-ho/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/szehon-ho/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "0864b2ada1f7d066c417dd2a3ee7b10d4b246597",
+                "url": "https://api.github.com/repos/apache/spark/commits/0864b2ada1f7d066c417dd2a3ee7b10d4b246597",
+                "html_url": "https://github.com/apache/spark/commit/0864b2ada1f7d066c417dd2a3ee7b10d4b246597"
+            }
+        ]
+    },
+    {
+        "sha": "0864b2ada1f7d066c417dd2a3ee7b10d4b246597",
+        "node_id": "C_kwDOAQXtWtoAKDA4NjRiMmFkYTFmN2QwNjZjNDE3ZGQyYTNlZTdiMTBkNGIyNDY1OTc",
+        "commit": {
+            "author": {
+                "name": "Holden Karau",
+                "email": "holden@pigscanfly.ca",
+                "date": "2026-09-25T19:59:07Z"
+            },
+            "committer": {
+                "name": "Holden Karau",
+                "email": "holden.karau@snowflake.com",
+                "date": "2026-09-25T19:59:07Z"
+            },
+            "message": "[SPARK-59087][CONNECT] Authenticate before the other gRPC interceptors run\n\n### What changes were proposed in this pull request?\n\n`startGRPCService` registers `PreSharedKeyAuthenticationInterceptor` after the entries from `SparkConnectInterceptorRegistry` rather than before them. A `ServerBuilder` invokes interceptors in the reverse of the order they were added, so the one added last is the outermost and runs first. That is the documented contract of `ServerBuilder.intercept` -- \"Interceptors run in the reverse order in which they are added, just as with consecutive calls to `ServerInterceptors.intercept()`\":\n\nhttps://github.com/grpc/grpc-java/blob/v1.76.0/api/src/main/java/io/grpc/ServerBuilder.java#L134-L144\n\nUpdates `SparkConnectAuthSuite`, which configures an interceptor through `spark.connect.grpc.interceptor.classes` and asserts it does not run for a call that fails authentication, then that it does run for a call that passes -- so the first assertion cannot hold merely because the interceptor was never wired up.\n\n### Why are the changes needed?\n\nAuthentication was the innermost interceptor, so it ran last. Everything registered after it -- `RequestDecompressionInterceptor` and whatever an operator names in `spark.connect.grpc.interceptor.classes` -- had its `interceptCall` invoked on behalf of callers that were about to be rejected as unauthenticated. Verified with the new suite: on the previous order it fails with \"1 did not equal 0 a configured interceptor ran for a call that failed authentication\".\n\nMessage payloads were not exposed, because gRPC stops delivering messages once the interceptor closes the call, so nothing attacker-supplied reached a listener. The exposure was the per-call setup work in the outer interceptors, and the fragility of an order in which any future interceptor doing real work in `interceptCall` or `onMessage` would run pre-authentication by default.\n\n### Does this PR introduce _any_ user-facing change?\n\nYes, for a server that configures both an authentication token and `spark.connect.grpc.interceptor.classes`: those interceptors no longer see calls that fail authentication. An interceptor that supplied the `Authorization` header itself, for example translating another scheme into a bearer token, relied on running ahead of authentication and no longer does. That ordering was never specified.\n\n### How was this patch tested?\n\n`SparkConnectAuthSuite`, `InterceptorRegistrySuite` and `SparkConnectServiceKeepAliveSuite`: 16 tests, all passing, scalastyle clean. Reverting just the registration order and rerunning the new suite reproduces the failure quoted above, so the assertion is load-bearing.\n\nThe reverse-invocation order and the fact that a closed call stops message delivery were both confirmed against grpc 1.76.0 with a standalone in-process harness: with the old registration order the outer interceptor's `interceptCall` ran once for an unauthenticated call while its listener saw zero `onMessage` and zero `onHalfClose` callbacks and the service handler was never invoked; with the new order it did not run at all, and on an authenticated call it ran and saw the message.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: Claude Code (Claude Opus 5) & Kimi K3s (w/ Cursor)\n\nCloses #58392 from holdenk/spark-connect-auth-improvements.\n\nLead-authored-by: Holden Karau <holden@pigscanfly.ca>\nCo-authored-by: Holden Karau <holden.karau@snowflake.com>\nSigned-off-by: Holden Karau <holden.karau@snowflake.com>",
+            "tree": {
+                "sha": "199d550c0e60a5d403452a8223ebeaa81a7c1ffd",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/199d550c0e60a5d403452a8223ebeaa81a7c1ffd"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/0864b2ada1f7d066c417dd2a3ee7b10d4b246597",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/0864b2ada1f7d066c417dd2a3ee7b10d4b246597",
+        "html_url": "https://github.com/apache/spark/commit/0864b2ada1f7d066c417dd2a3ee7b10d4b246597",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/0864b2ada1f7d066c417dd2a3ee7b10d4b246597/comments",
+        "author": {
+            "login": "holdenk",
+            "id": 59893,
+            "node_id": "MDQ6VXNlcjU5ODkz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59893?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/holdenk",
+            "html_url": "https://github.com/holdenk",
+            "followers_url": "https://api.github.com/users/holdenk/followers",
+            "following_url": "https://api.github.com/users/holdenk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/holdenk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/holdenk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/holdenk/subscriptions",
+            "organizations_url": "https://api.github.com/users/holdenk/orgs",
+            "repos_url": "https://api.github.com/users/holdenk/repos",
+            "events_url": "https://api.github.com/users/holdenk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/holdenk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "sfc-gh-hkarau",
+            "id": 237870419,
+            "node_id": "U_kgDODi2dUw",
+            "avatar_url": "https://avatars.githubusercontent.com/u/237870419?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/sfc-gh-hkarau",
+            "html_url": "https://github.com/sfc-gh-hkarau",
+            "followers_url": "https://api.github.com/users/sfc-gh-hkarau/followers",
+            "following_url": "https://api.github.com/users/sfc-gh-hkarau/following{/other_user}",
+            "gists_url": "https://api.github.com/users/sfc-gh-hkarau/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/sfc-gh-hkarau/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/sfc-gh-hkarau/subscriptions",
+            "organizations_url": "https://api.github.com/users/sfc-gh-hkarau/orgs",
+            "repos_url": "https://api.github.com/users/sfc-gh-hkarau/repos",
+            "events_url": "https://api.github.com/users/sfc-gh-hkarau/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/sfc-gh-hkarau/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "e985bd4b9cbfa02f937d7be2c585586a3375dda9",
+                "url": "https://api.github.com/repos/apache/spark/commits/e985bd4b9cbfa02f937d7be2c585586a3375dda9",
+                "html_url": "https://github.com/apache/spark/commit/e985bd4b9cbfa02f937d7be2c585586a3375dda9"
+            }
+        ]
+    },
+    {
+        "sha": "e985bd4b9cbfa02f937d7be2c585586a3375dda9",
+        "node_id": "C_kwDOAQXtWtoAKGU5ODViZDRiOWNiZmEwMmY5MzdkN2JlMmM1ODU1ODZhMzM3NWRkYTk",
+        "commit": {
+            "author": {
+                "name": "Joel Robin P",
+                "email": "joelrobin1818@gmail.com",
+                "date": "2026-09-25T11:22:04Z"
+            },
+            "committer": {
+                "name": "Wenchen Fan",
+                "email": "wenchen@databricks.com",
+                "date": "2026-09-25T11:22:04Z"
+            },
+            "message": "[SPARK-58966][SQL] Resolve SQL variables in UPDATE and MERGE INTO conditions\n\n### What changes were proposed in this pull request?\n\nSQL variables declared with `DECLARE` cannot be referenced in the conditions of an\n`UPDATE` or `MERGE INTO` statement. This passes `includeLastResort = true` at the nine\ncondition-resolution sites that make up those clauses, matching what SPARK-57260 did for\n`OverwriteByExpression.deleteExpr`.\n\nVariable resolution only runs from `resolveColsLastResort`, which is reached when\n`resolveExpressionByPlanOutput` / `resolveExpressionByPlanChildren` are called with\n`includeLastResort = true`. Both default the flag to `false`. Plans with no dedicated\nresolution rule fall through to the generic operator case in `ResolveReferences`, which\ndoes pass the flag -- which is why `DELETE ... WHERE` already works. `UPDATE` and\n`MERGE INTO` each have a dedicated rule that omitted it:\n\n- `UPDATE` condition (`ResolveReferencesInUpdate`)\n- `MERGE` `ON` condition\n- `MERGE` `WHEN MATCHED` `DELETE` / `UPDATE` conditions\n- `MERGE` `UPDATE *` condition\n- `MERGE` `WHEN NOT MATCHED` `INSERT` / `INSERT *` conditions\n- `MERGE` `WHEN NOT MATCHED BY SOURCE` `DELETE` / `UPDATE` conditions\n\nThis covers every `MergeAction` condition form, so all `MERGE` conditions now resolve\nvariables consistently.\n\nAssignment values (`SET col = var`, `INSERT VALUES (var)`) are affected by the same root\ncause, but they resolve through `resolveExprInAssignment`, which sets\n`includeLastResort = false` explicitly rather than by default. That is left unchanged\nhere pending a decision on whether the explicit `false` was deliberate, so this PR is\nscoped to conditions only.\n\n### Why are the changes needed?\n\nVariables resolve in `SELECT`, `INSERT` (including `REPLACE WHERE`) and `DELETE`, but in\nno condition of `UPDATE` or `MERGE INTO`, which fails analysis with:\n\n```\n[UNRESOLVED_COLUMN.WITH_SUGGESTION] A column, variable, or function parameter with\nname `target_dep` cannot be resolved. SQLSTATE: 42703\n```\n\nThe message itself offers \"A column, variable, or function parameter\", so the analyzer\nreports that variable resolution was attempted. Nothing in `error-conditions.json`, the\ntests, or the docs records a restriction here. Where Spark does intentionally block\nvariables (SPARK-57360, generated columns) it uses an explicit validation and a dedicated\nerror class, so the inconsistency looks like an oversight rather than a deliberate\nlimitation.\n\nThis affects both session variables and SQL scripting local variables.\n\n### Does this PR introduce _any_ user-facing change?\n\nYes, a bug fix.\n\nBefore, against a table using the built-in DSv2 row-level operation framework:\n\n```sql\nDECLARE OR REPLACE VARIABLE target_dep STRING DEFAULT 'hr';\nUPDATE cat.ns1.test_table SET salary = 0 WHERE dep = target_dep;\n-- [UNRESOLVED_COLUMN.WITH_SUGGESTION] ... `target_dep` cannot be resolved. SQLSTATE: 42703\n```\n\nAfter, the statement analyzes and executes, resolving `target_dep` to the declared\nvariable. Statements that previously succeeded are unaffected: the flag only enables a\nlast-resort resolution step that runs after normal column resolution fails, so column\nreferences continue to take precedence over same-named variables.\n\n### How was this patch tested?\n\nSix new tests, plus a shared `withSessionVariable` helper in\n`RowLevelOperationSuiteBase`:\n\n- `UpdateTableSuiteBase` -- a session variable and a SQL scripting local variable in an\n  `UPDATE` condition.\n- `MergeIntoTableSuiteBase` -- a variable in the `MERGE` `ON` condition, in the\n  `WHEN MATCHED` / `WHEN NOT MATCHED BY SOURCE` conditions, and in the\n  `WHEN NOT MATCHED` `INSERT` and `INSERT *` conditions.\n\nEach test was verified to fail without the fix (raising `UNRESOLVED_COLUMN`) and to pass\nwith it. The not-matched tests keep a source row that the variable predicate excludes, so\nthey fail if the variable is resolved but evaluated incorrectly, not just if resolution\nfails.\n\nSuites run: `GroupBasedUpdateTableSuite`, `GroupBasedMergeIntoTableSuite`,\n`DeltaBasedUpdateTableSuite` and `DeltaBasedMergeIntoTableSuite` -- 289 tests, all\npassing. Reverting only the `Analyzer` change makes the two not-matched tests fail with\n`UNRESOLVED_COLUMN` on the variable in the `insertaction` condition.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: Claude Code\n\nCloses #58244 from joelrobin18/joel-robin/variable-resolution-in-update-merge.\n\nAuthored-by: Joel Robin P <joelrobin1818@gmail.com>\nSigned-off-by: Wenchen Fan <wenchen@databricks.com>",
+            "tree": {
+                "sha": "02eb8c02eb729f361a75f618ca581eca875672a4",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/02eb8c02eb729f361a75f618ca581eca875672a4"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/e985bd4b9cbfa02f937d7be2c585586a3375dda9",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/e985bd4b9cbfa02f937d7be2c585586a3375dda9",
+        "html_url": "https://github.com/apache/spark/commit/e985bd4b9cbfa02f937d7be2c585586a3375dda9",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/e985bd4b9cbfa02f937d7be2c585586a3375dda9/comments",
+        "author": {
+            "login": "joelrobin18",
+            "id": 76001552,
+            "node_id": "MDQ6VXNlcjc2MDAxNTUy",
+            "avatar_url": "https://avatars.githubusercontent.com/u/76001552?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/joelrobin18",
+            "html_url": "https://github.com/joelrobin18",
+            "followers_url": "https://api.github.com/users/joelrobin18/followers",
+            "following_url": "https://api.github.com/users/joelrobin18/following{/other_user}",
+            "gists_url": "https://api.github.com/users/joelrobin18/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/joelrobin18/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/joelrobin18/subscriptions",
+            "organizations_url": "https://api.github.com/users/joelrobin18/orgs",
+            "repos_url": "https://api.github.com/users/joelrobin18/repos",
+            "events_url": "https://api.github.com/users/joelrobin18/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/joelrobin18/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "cloud-fan",
+            "id": 3182036,
+            "node_id": "MDQ6VXNlcjMxODIwMzY=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/3182036?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/cloud-fan",
+            "html_url": "https://github.com/cloud-fan",
+            "followers_url": "https://api.github.com/users/cloud-fan/followers",
+            "following_url": "https://api.github.com/users/cloud-fan/following{/other_user}",
+            "gists_url": "https://api.github.com/users/cloud-fan/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/cloud-fan/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/cloud-fan/subscriptions",
+            "organizations_url": "https://api.github.com/users/cloud-fan/orgs",
+            "repos_url": "https://api.github.com/users/cloud-fan/repos",
+            "events_url": "https://api.github.com/users/cloud-fan/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/cloud-fan/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "9b25ad22b3d2ee1236865f6b0b46578f9a92eb34",
+                "url": "https://api.github.com/repos/apache/spark/commits/9b25ad22b3d2ee1236865f6b0b46578f9a92eb34",
+                "html_url": "https://github.com/apache/spark/commit/9b25ad22b3d2ee1236865f6b0b46578f9a92eb34"
+            }
+        ]
+    },
+    {
+        "sha": "9b25ad22b3d2ee1236865f6b0b46578f9a92eb34",
+        "node_id": "C_kwDOAQXtWtoAKDliMjVhZDIyYjNkMmVlMTIzNjg2NWY2YjBiNDY1NzhmOWE5MmViMzQ",
+        "commit": {
+            "author": {
+                "name": "Max Gekk",
+                "email": "max.gekk@gmail.com",
+                "date": "2026-09-25T10:02:05Z"
+            },
+            "committer": {
+                "name": "Max Gekk",
+                "email": "max.gekk@gmail.com",
+                "date": "2026-09-25T10:02:05Z"
+            },
+            "message": "[SPARK-59774][SQL] Warn once, and name the remedy, when a whole-stage codegen method is too long to be JIT compiled\n\n### What changes were proposed in this pull request?\n\n`CodeCompiler.computeByteCodeStats` logs, at INFO, every generated method whose bytecode is past HotSpot's JIT limit of 8000 bytes (`CodeGenerator.DEFAULT_JVM_HUGE_METHOD_LIMIT`). This PR raises that line to WARN in the one case where it costs the user and they can act on it, and only the first time, on the driver. All of these must hold:\n\n- the method belongs to a whole-stage codegen stage (`GeneratedIteratorForCodegenStage*`);\n- it runs per row, not once (not `<init>`, `<clinit>` or `init`);\n- the stage keeps whole-stage codegen: the method is at or below `spark.sql.codegen.hugeMethodLimit`, so the stage does not fall back;\n- the JVM leaves huge methods to the interpreter: `-XX:+DontCompileHugeMethods`, read through `Utils.getVMOptionValue`;\n- the method is compiled on the driver, not by a task: the driver compiles each stage before its tasks do.\n\nEvery other report, including every one after the first WARN, keeps the existing INFO line unchanged.\n\nBefore:\n```\nINFO CodeGenerator: Generated method too long to be JIT compiled: <class>.<method> is 9513 bytes\n```\nAfter, the first time on the driver:\n```\nWARN CodeGenerator: Generated method too long to be JIT compiled: <class>.processNext is 9513 bytes, so it runs interpreted on every row. Setting spark.sql.codegen.hugeMethodLimit to 8000 runs such stages without whole-stage codegen instead. Further methods over the limit are logged at INFO.\n```\n\n### Why are the changes needed?\n\nHotSpot does not JIT-compile a method past 8000 bytes (`-XX:+DontCompileHugeMethods`, on by default), so the method runs interpreted, typically several times slower. On stock Spark 4.2.0, widening a projection's consume method from 7945 to 8677 bytes steps it from about 770 to about 4100 ns a row. Spark detects this, but only at INFO. `spark-shell` and `pyspark` run at WARN and never show it, and `spark.sql.codegen.hugeMethodLimit`, which could act on it, defaults to 65535, which no compiled method exceeds.\n\n### Does this PR introduce _any_ user-facing change?\n\nYes, in the log only: at most one WARN, from the driver, and only in the case above. Everything else is unchanged.\n\n### How was this patch tested?\n\nA new test in `CodeGenerationSuite` covers each case: a stage that falls back, the run-once methods, a class outside whole-stage codegen, a compile under a `TaskContext`, the first WARN (which names the setting and 8000), and INFO afterwards. The SPARK-25113 test asserts that a projection's huge method is still logged at INFO.\n```\nbuild/sbt \"catalyst/testOnly org.apache.spark.sql.catalyst.expressions.CodeGenerationSuite -- -z SPARK-25113 -z SPARK-59774\"\n```\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: Claude Code (Claude Opus 5.5)\n\nCloses #59020 from MaxGekk/SPARK-59774.\n\nAuthored-by: Max Gekk <max.gekk@gmail.com>\nSigned-off-by: Max Gekk <max.gekk@gmail.com>",
+            "tree": {
+                "sha": "d5f8f0610e78e38982b24680ed18ca05a261d1f9",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/d5f8f0610e78e38982b24680ed18ca05a261d1f9"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/9b25ad22b3d2ee1236865f6b0b46578f9a92eb34",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/9b25ad22b3d2ee1236865f6b0b46578f9a92eb34",
+        "html_url": "https://github.com/apache/spark/commit/9b25ad22b3d2ee1236865f6b0b46578f9a92eb34",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/9b25ad22b3d2ee1236865f6b0b46578f9a92eb34/comments",
+        "author": {
+            "login": "MaxGekk",
+            "id": 1580697,
+            "node_id": "MDQ6VXNlcjE1ODA2OTc=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/1580697?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MaxGekk",
+            "html_url": "https://github.com/MaxGekk",
+            "followers_url": "https://api.github.com/users/MaxGekk/followers",
+            "following_url": "https://api.github.com/users/MaxGekk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MaxGekk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MaxGekk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MaxGekk/subscriptions",
+            "organizations_url": "https://api.github.com/users/MaxGekk/orgs",
+            "repos_url": "https://api.github.com/users/MaxGekk/repos",
+            "events_url": "https://api.github.com/users/MaxGekk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MaxGekk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "MaxGekk",
+            "id": 1580697,
+            "node_id": "MDQ6VXNlcjE1ODA2OTc=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/1580697?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MaxGekk",
+            "html_url": "https://github.com/MaxGekk",
+            "followers_url": "https://api.github.com/users/MaxGekk/followers",
+            "following_url": "https://api.github.com/users/MaxGekk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MaxGekk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MaxGekk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MaxGekk/subscriptions",
+            "organizations_url": "https://api.github.com/users/MaxGekk/orgs",
+            "repos_url": "https://api.github.com/users/MaxGekk/repos",
+            "events_url": "https://api.github.com/users/MaxGekk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MaxGekk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "5ffc3e912e0446d0c501bb7471af41e5d198874c",
+                "url": "https://api.github.com/repos/apache/spark/commits/5ffc3e912e0446d0c501bb7471af41e5d198874c",
+                "html_url": "https://github.com/apache/spark/commit/5ffc3e912e0446d0c501bb7471af41e5d198874c"
+            }
+        ]
+    },
+    {
+        "sha": "5ffc3e912e0446d0c501bb7471af41e5d198874c",
+        "node_id": "C_kwDOAQXtWtoAKDVmZmMzZTkxMmUwNDQ2ZDBjNTAxYmI3NDcxYWY0MWU1ZDE5ODg3NGM",
+        "commit": {
+            "author": {
+                "name": "Wenchen Fan",
+                "email": "wenchen@databricks.com",
+                "date": "2026-09-25T09:13:39Z"
+            },
+            "committer": {
+                "name": "Wenchen Fan",
+                "email": "wenchen@databricks.com",
+                "date": "2026-09-25T09:13:39Z"
+            },
+            "message": "[SPARK-59673][SQL] Floor the NAAJ broadcast threshold\n\n### What changes were proposed in this pull request?\n\nFor a nonnegative `spark.sql.optimizeNullAwareAntiJoin.broadcastThreshold`, this PR allows the\nspecialized null-aware broadcast hash join when either the dedicated threshold or the applicable\nautomatic broadcast threshold admits the right side. Regular planning uses\n`spark.sql.adaptive.autoBroadcastJoinThreshold` for runtime statistics when it is set, and\n`spark.sql.autoBroadcastJoinThreshold` otherwise. A negative dedicated threshold remains\nunlimited.\n\nThreshold eligibility is evaluated before join hints, matching the existing precedence of the\ndedicated threshold. Hints affect the fallback only when the specialized NAAJ is not eligible.\nThe same shared eligibility decision intentionally controls aggregate pushdown: the optimizer\nuses estimated statistics before adaptive execution, while join selection may reevaluate the\ndecision with runtime statistics.\n\n### Why are the changes needed?\n\nIf the dedicated NAAJ threshold is lower than the automatic broadcast threshold, it can reject the\nspecialized null-aware broadcast hash join even though automatic join planning will broadcast the\nright side. That fallback uses a nested-loop representation and changes hash lookup from\n`O(M + N)` to `O(M * N)` without avoiding the broadcast.\n\nUsing the applicable automatic threshold as a floor avoids that regression while preserving the\ndedicated threshold as a way to allow the specialized NAAJ above the automatic threshold.\n\n### Does this PR introduce _any_ user-facing change?\n\nYes, on unreleased branches and for an internal configuration. A nonnegative dedicated NAAJ\nthreshold can no longer disable the specialized hash optimization for inputs admitted by the\napplicable automatic broadcast threshold.\n\nTo disable the specialized optimization without changing automatic broadcast thresholds, set\n`spark.sql.optimizeNullAwareAntiJoin=false`. A negative dedicated threshold does not disable the\noptimization; it makes the threshold unlimited.\n\n### How was this patch tested?\n\nThe patch is covered by the following focused suites:\n\n```\nbuild/sbt \\\n  \"catalyst/testOnly org.apache.spark.sql.catalyst.optimizer.JoinSelectionHelperSuite\" \\\n  \"catalyst/testOnly org.apache.spark.sql.catalyst.optimizer.LeftSemiAntiJoinPushDownSuite\" \\\n  \"sql/testOnly org.apache.spark.sql.JoinSuite -- -z SPARK-36082\"\n```\n\nThe latest local rerun was blocked before compilation because the isolated environment could not\nresolve the updated SBT plugins. Whitespace, changed-line length, and non-ASCII checks passed. The\nfocused suites will run in GitHub Actions.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: OpenAI Codex (GPT-5)\n\nCloses #58870 from cloud-fan/cloud-fan/naaj-broadcast-threshold-floor.\n\nAuthored-by: Wenchen Fan <wenchen@databricks.com>\nSigned-off-by: Wenchen Fan <wenchen@databricks.com>",
+            "tree": {
+                "sha": "bc2b751ff653fe49a8f6ccf6651fb50711bb2d98",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/bc2b751ff653fe49a8f6ccf6651fb50711bb2d98"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/5ffc3e912e0446d0c501bb7471af41e5d198874c",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/5ffc3e912e0446d0c501bb7471af41e5d198874c",
+        "html_url": "https://github.com/apache/spark/commit/5ffc3e912e0446d0c501bb7471af41e5d198874c",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/5ffc3e912e0446d0c501bb7471af41e5d198874c/comments",
+        "author": {
+            "login": "cloud-fan",
+            "id": 3182036,
+            "node_id": "MDQ6VXNlcjMxODIwMzY=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/3182036?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/cloud-fan",
+            "html_url": "https://github.com/cloud-fan",
+            "followers_url": "https://api.github.com/users/cloud-fan/followers",
+            "following_url": "https://api.github.com/users/cloud-fan/following{/other_user}",
+            "gists_url": "https://api.github.com/users/cloud-fan/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/cloud-fan/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/cloud-fan/subscriptions",
+            "organizations_url": "https://api.github.com/users/cloud-fan/orgs",
+            "repos_url": "https://api.github.com/users/cloud-fan/repos",
+            "events_url": "https://api.github.com/users/cloud-fan/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/cloud-fan/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "cloud-fan",
+            "id": 3182036,
+            "node_id": "MDQ6VXNlcjMxODIwMzY=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/3182036?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/cloud-fan",
+            "html_url": "https://github.com/cloud-fan",
+            "followers_url": "https://api.github.com/users/cloud-fan/followers",
+            "following_url": "https://api.github.com/users/cloud-fan/following{/other_user}",
+            "gists_url": "https://api.github.com/users/cloud-fan/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/cloud-fan/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/cloud-fan/subscriptions",
+            "organizations_url": "https://api.github.com/users/cloud-fan/orgs",
+            "repos_url": "https://api.github.com/users/cloud-fan/repos",
+            "events_url": "https://api.github.com/users/cloud-fan/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/cloud-fan/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "3d9598bc43a5032c5bd814f09770748eaab965e6",
+                "url": "https://api.github.com/repos/apache/spark/commits/3d9598bc43a5032c5bd814f09770748eaab965e6",
+                "html_url": "https://github.com/apache/spark/commit/3d9598bc43a5032c5bd814f09770748eaab965e6"
+            }
+        ]
+    },
+    {
+        "sha": "3d9598bc43a5032c5bd814f09770748eaab965e6",
+        "node_id": "C_kwDOAQXtWtoAKDNkOTU5OGJjNDNhNTAzMmM1YmQ4MTRmMDk3NzA3NDhlYWFiOTY1ZTY",
+        "commit": {
+            "author": {
+                "name": "Ganesha S",
+                "email": "ganesha.s@databricks.com",
+                "date": "2026-09-25T09:08:37Z"
+            },
+            "committer": {
+                "name": "Wenchen Fan",
+                "email": "wenchen@databricks.com",
+                "date": "2026-09-25T09:08:37Z"
+            },
+            "message": "[SPARK-59685][SQL] Keep clause-free SQL/JSON constructor canonical SQL bound to the built-in\n\n### What changes were proposed in this pull request?\n\nSince SPARK-59144, a clause-free SQL/JSON function call routes through function resolution, so a same-named routine on the SQL PATH can shadow the built-in. However these built-ins' canonical `sql` omits default clauses, so a call that is a built-in only because of a default clause renders as clause-free SQL; reparsing that under a shadowing PATH binds the routine instead of the built-in.\n\nThis PR renders the default clause (`RETURNING STRING`, or `FALSE ON ERROR` for `JSON_EXISTS`) in canonical `sql` so the rendering reparses back to the built-in. A shared `RoutedSqlJsonExpression` trait lets `usePrettyExpression` keep rendering the clean clause-free form for auto-generated column names (which are never reparsed), so display names stay unaffected.\n\n### Why are the changes needed?\n\nWithout this, a canonical-SQL round-trip (e.g. persisting and reloading a view) can silently rebind a built-in SQL/JSON function to a user routine that shadows it on the SQL PATH, changing results.\n\n### Does this PR introduce _any_ user-facing change?\n\nYes, within unreleased master only. Canonical SQL of a clause-free SQL/JSON constructor now includes its default clause. Auto-generated column names are unchanged -- both top-level and nested (children are rendered in place, so a nested constructor's name gains no synthetic `FORMAT JSON`).\n\n### How was this patch tested?\n\nNew unit tests in `JsonValueSuite` / `JsonQuerySuite` / `JsonExistsSuite` / `JsonArraySuite`: each asserts a default-clause constructor's canonical SQL reparses to the built-in under a shadowing PATH (including the zero-arg `JSON_ARRAY()` case), that the emitted SQL round-trips and evaluates correctly, and that top-level and nested auto-generated column names stay clean. No golden-file changes.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: Claude Code (Opus 4.8)\n\nCloses #58938 from ganeshashree/SPARK-59685.\n\nAuthored-by: Ganesha S <ganesha.s@databricks.com>\nSigned-off-by: Wenchen Fan <wenchen@databricks.com>",
+            "tree": {
+                "sha": "c1cd1ff065d17c9b56c8a0bce1ecaea8751375db",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/c1cd1ff065d17c9b56c8a0bce1ecaea8751375db"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/3d9598bc43a5032c5bd814f09770748eaab965e6",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/3d9598bc43a5032c5bd814f09770748eaab965e6",
+        "html_url": "https://github.com/apache/spark/commit/3d9598bc43a5032c5bd814f09770748eaab965e6",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/3d9598bc43a5032c5bd814f09770748eaab965e6/comments",
+        "author": {
+            "login": "ganeshas-db",
+            "id": 188985449,
+            "node_id": "U_kgDOC0OwaQ",
+            "avatar_url": "https://avatars.githubusercontent.com/u/188985449?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/ganeshas-db",
+            "html_url": "https://github.com/ganeshas-db",
+            "followers_url": "https://api.github.com/users/ganeshas-db/followers",
+            "following_url": "https://api.github.com/users/ganeshas-db/following{/other_user}",
+            "gists_url": "https://api.github.com/users/ganeshas-db/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/ganeshas-db/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/ganeshas-db/subscriptions",
+            "organizations_url": "https://api.github.com/users/ganeshas-db/orgs",
+            "repos_url": "https://api.github.com/users/ganeshas-db/repos",
+            "events_url": "https://api.github.com/users/ganeshas-db/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/ganeshas-db/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "cloud-fan",
+            "id": 3182036,
+            "node_id": "MDQ6VXNlcjMxODIwMzY=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/3182036?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/cloud-fan",
+            "html_url": "https://github.com/cloud-fan",
+            "followers_url": "https://api.github.com/users/cloud-fan/followers",
+            "following_url": "https://api.github.com/users/cloud-fan/following{/other_user}",
+            "gists_url": "https://api.github.com/users/cloud-fan/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/cloud-fan/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/cloud-fan/subscriptions",
+            "organizations_url": "https://api.github.com/users/cloud-fan/orgs",
+            "repos_url": "https://api.github.com/users/cloud-fan/repos",
+            "events_url": "https://api.github.com/users/cloud-fan/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/cloud-fan/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "600b8b0eb73770a9d00cec12d630709735793df8",
+                "url": "https://api.github.com/repos/apache/spark/commits/600b8b0eb73770a9d00cec12d630709735793df8",
+                "html_url": "https://github.com/apache/spark/commit/600b8b0eb73770a9d00cec12d630709735793df8"
+            }
+        ]
+    },
+    {
+        "sha": "600b8b0eb73770a9d00cec12d630709735793df8",
+        "node_id": "C_kwDOAQXtWtoAKDYwMGI4YjBlYjczNzcwYTlkMDBjZWMxMmQ2MzA3MDk3MzU3OTNkZjg",
+        "commit": {
+            "author": {
+                "name": "Mihailo Aleksic",
+                "email": "mihailo.aleksic@databricks.com",
+                "date": "2026-09-25T08:45:49Z"
+            },
+            "committer": {
+                "name": "Uros Bojanic",
+                "email": "221401595+uros-b@users.noreply.github.com",
+                "date": "2026-09-25T08:45:49Z"
+            },
+            "message": "[SPARK-59746][SQL][TEST] Improve golden file testing for hints\n\n### What changes were proposed in this pull request?\nIn this PR I propose to improve golden files testing for hints.\n\n### Why are the changes needed?\nThey don't exist at the moment and I propose to `introduce sql/core/src/test/resources/sql-tests/inputs/hints.sql`\n\n### Does this PR introduce _any_ user-facing change?\nNo (testing only change)\n\n### How was this patch tested?\nSPARK_GENERATE_GOLDEN_FILES=1 build/sbt \"sql/testOnly org.apache.spark.sql.SQLQueryTestSuite -- -z hints.sql\"\n\n### Was this patch authored or co-authored using generative AI tooling?\nYes, used Codex to generate golden files and it also ran the machinery to generate results. Also helped address the feedback.\n\nCloses #58995 from mihailoale-db/hints-sql-golden-file.\n\nAuthored-by: Mihailo Aleksic <mihailo.aleksic@databricks.com>\nSigned-off-by: Uros Bojanic <221401595+uros-b@users.noreply.github.com>",
+            "tree": {
+                "sha": "8920c568e1b7f58a2ff79d5fb7e7ddad9ebe89f1",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/8920c568e1b7f58a2ff79d5fb7e7ddad9ebe89f1"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/600b8b0eb73770a9d00cec12d630709735793df8",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/600b8b0eb73770a9d00cec12d630709735793df8",
+        "html_url": "https://github.com/apache/spark/commit/600b8b0eb73770a9d00cec12d630709735793df8",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/600b8b0eb73770a9d00cec12d630709735793df8/comments",
+        "author": {
+            "login": "mihailoale-db",
+            "id": 171580095,
+            "node_id": "U_kgDOCjoavw",
+            "avatar_url": "https://avatars.githubusercontent.com/u/171580095?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/mihailoale-db",
+            "html_url": "https://github.com/mihailoale-db",
+            "followers_url": "https://api.github.com/users/mihailoale-db/followers",
+            "following_url": "https://api.github.com/users/mihailoale-db/following{/other_user}",
+            "gists_url": "https://api.github.com/users/mihailoale-db/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/mihailoale-db/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/mihailoale-db/subscriptions",
+            "organizations_url": "https://api.github.com/users/mihailoale-db/orgs",
+            "repos_url": "https://api.github.com/users/mihailoale-db/repos",
+            "events_url": "https://api.github.com/users/mihailoale-db/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/mihailoale-db/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "uros-b",
+            "id": 221401595,
+            "node_id": "U_kgDODTJR-w",
+            "avatar_url": "https://avatars.githubusercontent.com/u/221401595?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/uros-b",
+            "html_url": "https://github.com/uros-b",
+            "followers_url": "https://api.github.com/users/uros-b/followers",
+            "following_url": "https://api.github.com/users/uros-b/following{/other_user}",
+            "gists_url": "https://api.github.com/users/uros-b/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/uros-b/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/uros-b/subscriptions",
+            "organizations_url": "https://api.github.com/users/uros-b/orgs",
+            "repos_url": "https://api.github.com/users/uros-b/repos",
+            "events_url": "https://api.github.com/users/uros-b/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/uros-b/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "3fa48313900b73511ca092b2d1797cc89c00c5e0",
+                "url": "https://api.github.com/repos/apache/spark/commits/3fa48313900b73511ca092b2d1797cc89c00c5e0",
+                "html_url": "https://github.com/apache/spark/commit/3fa48313900b73511ca092b2d1797cc89c00c5e0"
+            }
+        ]
+    },
+    {
+        "sha": "3fa48313900b73511ca092b2d1797cc89c00c5e0",
+        "node_id": "C_kwDOAQXtWtoAKDNmYTQ4MzEzOTAwYjczNTExY2EwOTJiMmQxNzk3Y2M4OWMwMGM1ZTA",
+        "commit": {
+            "author": {
+                "name": "Max Gekk",
+                "email": "max.gekk@gmail.com",
+                "date": "2026-09-25T08:26:01Z"
+            },
+            "committer": {
+                "name": "Max Gekk",
+                "email": "max.gekk@gmail.com",
+                "date": "2026-09-25T08:26:01Z"
+            },
+            "message": "[SPARK-59765][SQL][TEST] Generate broadcast joins in full when measuring benchmark query codegen\n\n### What changes were proposed in this pull request?\n\n`BenchmarkQueryTest.checkGeneratedCode` and `WholeStageCodegenSizeBenchmark` measure the code whole-stage codegen generates for the TPC-DS (and TPC-H, SSB) queries without running them. They plan each query over empty tables with AQE disabled and call `doCodeGen()` on every `WholeStageCodegenExec`. With AQE disabled, `BroadcastHashJoinExec` executes its broadcast while generating code. Over an empty table the relation is `EmptyHashedRelation`, and `HashJoin` then generates a one-line stub instead of the join (\"If HashedRelation is empty, hash inner join simply returns nothing\"), so the rest of the stage is not generated either. Both instruments therefore measure stubs for every stage with a broadcast join. On master, with the benchmark's setup, 324 of the 2201 stages of the TPC-DS v1.4 and v2.7 queries carry the stub, in 127 of the 129 queries.\n\nThis PR generates each stage's code from a copy of the stage in which every broadcast exchange, including one under a `ReusedExchangeExec`, reads one row of non-null default values instead of its child. The joins then generate the code they generate for data. Only the code of the copy is used: the build side is its own stage, found in and measured from the original plan, so the set of stages is unchanged.\n\n- `BenchmarkQueryTest` gets a companion object with `withRowBroadcasts`, which builds the copy, and `generatedCode`, which returns every stage of a plan and its subqueries with its code. `generatedCode` follows an adaptive plan into its current plan and query stages, as `codegenStringSeq` does. The copy is built top down, so a build side is never copied before its exchange is replaced. One replacement per broadcast exchange of a plan is shared by every stage that reads it, so each one-row broadcast runs once. `withRowBroadcasts` fails if any broadcast hash or nested loop join of the copy reads anything but a one-row broadcast, so no join can generate its empty-build-side code unnoticed, whatever the join kind.\n- `checkGeneratedCode` iterates `generatedCode(plan)` instead of its own walk.\n- `WholeStageCodegenSizeBenchmark` measures through `generatedCode` in place of `codegenStringSeq`. It skips a query only when the query fails to plan. A failure while generating the code, or a query with no whole-stage-codegen subtree, fails the run instead of silently shrinking the totals. Its scaladoc says how broadcast joins are measured.\n- The three results files are regenerated. The stage count is unchanged at 2247 and the largest method at 4962 bytes. The source code size grows by about 19% (21.37M to 25.42M characters), the summed per-stage largest method by about 11% (821K to 910K bytes), and the summed constant pool by about 6%.\n\nA single row makes every join key unique, so a hash join generates its unique-key form; a join whose real build side repeats keys also has the loop over matches. That remaining difference is small next to a stub.\n\n### Why are the changes needed?\n\nThe benchmark is the instrument for the SPARK-56908 umbrella, and it has understated the generated code of most TPC-DS queries. `checkGeneratedCode` checks stubs in the same way. `LogicalPlanTagInSparkPlanSuite` already runs it with AQE disabled on master, and the other suites will once SPARK-59764 disables AQE for them.\n\n### Does this PR introduce _any_ user-facing change?\n\nNo. Test and benchmark only.\n\n### How was this patch tested?\n\nBy running the affected suites:\n```\nbuild/sbt \"sql/testOnly org.apache.spark.sql.execution.LogicalPlanTagInSparkPlanSuite org.apache.spark.sql.TPCDSQuerySuite org.apache.spark.sql.TPCDSQueryWithStatsSuite org.apache.spark.sql.TPCDSQueryANSISuite org.apache.spark.sql.TPCHQuerySuite org.apache.spark.sql.SSBQuerySuite\"\n```\nAll six passed, 635 tests, in 48 seconds. No stage generated in full crosses the 8000-byte limit.\n\nAs a negative check, with the replacement of broadcast exchanges disabled, 145 of the 150 tests of `LogicalPlanTagInSparkPlanSuite` fail with `a broadcast hash join reads ..., not a one-row broadcast`. That suite already runs the check with AQE disabled on master, so this is the bug there today.\n\nThe results files were generated with `SPARK_GENERATE_BENCHMARK_FILES=1`, running the benchmark's `main` under JDK 17, 21 and 25 in turn. The benchmark measures code sizes, not time, so the machine does not matter. A JDK 25 run through sbt matched the direct run within about 0.01%, the same run-to-run variation the committed files already show between JDKs.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: Claude Code (Claude Opus 5.5)\n\nCloses #59018 from MaxGekk/SPARK-59765.\n\nAuthored-by: Max Gekk <max.gekk@gmail.com>\nSigned-off-by: Max Gekk <max.gekk@gmail.com>",
+            "tree": {
+                "sha": "3a0895994494c91d4ccef0e673b3f9353cff6aea",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/3a0895994494c91d4ccef0e673b3f9353cff6aea"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/3fa48313900b73511ca092b2d1797cc89c00c5e0",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/3fa48313900b73511ca092b2d1797cc89c00c5e0",
+        "html_url": "https://github.com/apache/spark/commit/3fa48313900b73511ca092b2d1797cc89c00c5e0",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/3fa48313900b73511ca092b2d1797cc89c00c5e0/comments",
+        "author": {
+            "login": "MaxGekk",
+            "id": 1580697,
+            "node_id": "MDQ6VXNlcjE1ODA2OTc=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/1580697?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MaxGekk",
+            "html_url": "https://github.com/MaxGekk",
+            "followers_url": "https://api.github.com/users/MaxGekk/followers",
+            "following_url": "https://api.github.com/users/MaxGekk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MaxGekk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MaxGekk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MaxGekk/subscriptions",
+            "organizations_url": "https://api.github.com/users/MaxGekk/orgs",
+            "repos_url": "https://api.github.com/users/MaxGekk/repos",
+            "events_url": "https://api.github.com/users/MaxGekk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MaxGekk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "MaxGekk",
+            "id": 1580697,
+            "node_id": "MDQ6VXNlcjE1ODA2OTc=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/1580697?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MaxGekk",
+            "html_url": "https://github.com/MaxGekk",
+            "followers_url": "https://api.github.com/users/MaxGekk/followers",
+            "following_url": "https://api.github.com/users/MaxGekk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MaxGekk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MaxGekk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MaxGekk/subscriptions",
+            "organizations_url": "https://api.github.com/users/MaxGekk/orgs",
+            "repos_url": "https://api.github.com/users/MaxGekk/repos",
+            "events_url": "https://api.github.com/users/MaxGekk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MaxGekk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "73054c78f8b8acfac3074e3d3e29ee5482970378",
+                "url": "https://api.github.com/repos/apache/spark/commits/73054c78f8b8acfac3074e3d3e29ee5482970378",
+                "html_url": "https://github.com/apache/spark/commit/73054c78f8b8acfac3074e3d3e29ee5482970378"
+            }
+        ]
+    },
+    {
+        "sha": "73054c78f8b8acfac3074e3d3e29ee5482970378",
+        "node_id": "C_kwDOAQXtWtoAKDczMDU0Yzc4ZjhiOGFjZmFjMzA3NGUzZDNlMjllZTU0ODI5NzAzNzg",
+        "commit": {
+            "author": {
+                "name": "Max Gekk",
+                "email": "max.gekk@gmail.com",
+                "date": "2026-09-25T04:48:36Z"
+            },
+            "committer": {
+                "name": "Max Gekk",
+                "email": "max.gekk@gmail.com",
+                "date": "2026-09-25T04:48:36Z"
+            },
+            "message": "[SPARK-59764][SQL][TEST] Check generated code of benchmark queries with AQE disabled\n\n### What changes were proposed in this pull request?\n\n`BenchmarkQueryTest.checkGeneratedCode` is meant to check that every whole-stage codegen subtree of a benchmark query compiles, and that its largest generated method is within HotSpot's `HugeMethodLimit` (8000 bytes). It walks `sql(query).queryExecution.executedPlan` without running the query. Since adaptive query execution became the default (SPARK-33679, 3.2.0), that plan is an `AdaptiveSparkPlanExec`, whose `WholeStageCodegenExec` subtrees are created only when the query runs. So the walk finds none, and `TPCDSQuerySuite` (with `TPCDSQueryWithStatsSuite` and `TPCDSQueryANSISuite`), `TPCHQuerySuite` and `SSBQuerySuite` pass without compiling or checking anything. Only `LogicalPlanTagInSparkPlanSuite`, which disabled AQE itself, kept running the check.\n\nThis PR:\n1. Mixes `DisableAdaptiveExecutionSuite` into `BenchmarkQueryTest`, so the plans these suites check have their whole-stage codegen subtrees. It also mixes in `QueryTest` explicitly, and drops the now redundant mixin from `LogicalPlanTagInSparkPlanSuite`.\n2. Makes `checkGeneratedCode` fail if it finds no `WholeStageCodegenExec` subtree, or finds an `AdaptiveSparkPlanExec` anywhere in the plan or its subqueries, so the check cannot become vacuous again, entirely or in part, unnoticed.\n\nThe `spark.sql.readSideCharPadding=false` override in `TPCDSQuerySuite` and the `modified-q3` exclusion (SPARK-29128) are unchanged.\n\n**Known limitation, not changed here.** The TPC tables these suites create are empty. With AQE off, `BroadcastHashJoinExec` executes its broadcast while generating code, gets `EmptyHashedRelation`, and generates a stub for an inner join and the rest of its stage (`HashJoin.codegenInner`). So stages with an inner broadcast hash join are still checked only in part. Fixing that needs non-empty tables, which changes more than this bug, and is better as a follow-up. The check also covers the non-adaptive plan shape only; covering AQE's runtime shapes would need executed plans over real data.\n\n### Why are the changes needed?\n\nThe compile check and the method size check in these suites have not run since 3.2.0 except in `LogicalPlanTagInSparkPlanSuite`, so a codegen regression in the TPC-DS, TPC-H or SSB queries would mostly not be caught.\n\n### Does this PR introduce _any_ user-facing change?\n\nNo. Test-only change.\n\n### How was this patch tested?\n\nBy running the affected suites:\n```\nbuild/sbt \"sql/testOnly org.apache.spark.sql.TPCDSQuerySuite org.apache.spark.sql.TPCDSQueryWithStatsSuite org.apache.spark.sql.TPCDSQueryANSISuite org.apache.spark.sql.TPCHQuerySuite org.apache.spark.sql.SSBQuerySuite org.apache.spark.sql.execution.LogicalPlanTagInSparkPlanSuite\"\n```\nAll six suites passed, 635 tests, in 1 minute 12 seconds. Generating code with AQE off now runs the broadcasts of broadcast joins, which is part of that time.\n\nAs a negative check, with only the new assertion and without `DisableAdaptiveExecutionSuite`, all 22 tests of `TPCHQuerySuite` fail with `no WholeStageCodegenExec subtree found to check in the plan`, which is the bug this PR fixes.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: Claude Code (Claude Opus 5.5)\n\nCloses #59017 from MaxGekk/SPARK-59764.\n\nAuthored-by: Max Gekk <max.gekk@gmail.com>\nSigned-off-by: Max Gekk <max.gekk@gmail.com>",
+            "tree": {
+                "sha": "e331cacd39b0fae9827898ab88c127db06bcec1f",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/e331cacd39b0fae9827898ab88c127db06bcec1f"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/73054c78f8b8acfac3074e3d3e29ee5482970378",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/73054c78f8b8acfac3074e3d3e29ee5482970378",
+        "html_url": "https://github.com/apache/spark/commit/73054c78f8b8acfac3074e3d3e29ee5482970378",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/73054c78f8b8acfac3074e3d3e29ee5482970378/comments",
+        "author": {
+            "login": "MaxGekk",
+            "id": 1580697,
+            "node_id": "MDQ6VXNlcjE1ODA2OTc=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/1580697?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MaxGekk",
+            "html_url": "https://github.com/MaxGekk",
+            "followers_url": "https://api.github.com/users/MaxGekk/followers",
+            "following_url": "https://api.github.com/users/MaxGekk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MaxGekk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MaxGekk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MaxGekk/subscriptions",
+            "organizations_url": "https://api.github.com/users/MaxGekk/orgs",
+            "repos_url": "https://api.github.com/users/MaxGekk/repos",
+            "events_url": "https://api.github.com/users/MaxGekk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MaxGekk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "MaxGekk",
+            "id": 1580697,
+            "node_id": "MDQ6VXNlcjE1ODA2OTc=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/1580697?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MaxGekk",
+            "html_url": "https://github.com/MaxGekk",
+            "followers_url": "https://api.github.com/users/MaxGekk/followers",
+            "following_url": "https://api.github.com/users/MaxGekk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MaxGekk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MaxGekk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MaxGekk/subscriptions",
+            "organizations_url": "https://api.github.com/users/MaxGekk/orgs",
+            "repos_url": "https://api.github.com/users/MaxGekk/repos",
+            "events_url": "https://api.github.com/users/MaxGekk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MaxGekk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "366d78b5a73e00f5f7d6b7f7f45782c91d195957",
+                "url": "https://api.github.com/repos/apache/spark/commits/366d78b5a73e00f5f7d6b7f7f45782c91d195957",
+                "html_url": "https://github.com/apache/spark/commit/366d78b5a73e00f5f7d6b7f7f45782c91d195957"
+            }
+        ]
+    },
+    {
+        "sha": "366d78b5a73e00f5f7d6b7f7f45782c91d195957",
+        "node_id": "C_kwDOAQXtWtoAKDM2NmQ3OGI1YTczZTAwZjVmN2Q2YjdmN2Y0NTc4MmM5MWQxOTU5NTc",
+        "commit": {
+            "author": {
+                "name": "Szehon Ho",
+                "email": "szehon.apache@gmail.com",
+                "date": "2026-09-25T01:30:06Z"
+            },
+            "committer": {
+                "name": "Szehon Ho",
+                "email": "szehon.apache@gmail.com",
+                "date": "2026-09-25T01:30:06Z"
+            },
+            "message": "[SPARK-59005][INFRA][FOLLOWUP] Suggest JIRA affects versions for unreleased major and minor releases\n\n### What changes were proposed in this pull request?\n\nCurrently, the merge script's **Affects Version prompt has no default**. When it flags an affected-version mismatch, the committer must type the affected version manually, even when they want to use the same version they just selected for the fix.\n\nFor example, a merge into `master` and `branch-4.x`, with the latter targeting the upcoming `4.4.0` release, can produce:\n\n- Affects Version currently in JIRA: `5.0.0`\n- Fix Version selected in the merge script: `4.4.0`, unreleased\n\nThe selected fix version does not need to be recorded in JIRA yet. The script compares it with the recorded affected version and flags the mismatch.\n\n**Current behavior:** there is no suggestion in the affects-version prompt. The committer must type `4.4.0`; pressing Enter skips the update.\n\n```text\nEnter comma-separated affects version(s) (blank to skip):\n```\n\n**With this PR:** the prompt offers `4.4.0` as a default, so the committer can press Enter to accept it.\n\n```text\nEnter comma-separated affects version(s) [4.4.0] (or 'skip'):\n```\n\nThis is a follow-up to #58288 under SPARK-59005. The new default is offered only when the **earliest fix version is an unreleased `x.y.0` release**. If the earliest fix version is a patch release or has already been released, the prompt retains its current behavior: no default, and blank input skips the update.\n\nThe committer can enter a different version or type `skip` to leave the field unchanged. The existing append/overwrite/keep choices remain, with append as the default, so accepting the suggestion can add `4.4.0` while preserving `5.0.0`.\n\n### Why are the changes needed?\n\nFor the example above, the committer currently has to type `4.4.0` manually. Offering it as an editable suggestion makes this correction easier.\n\n[PR #58288](https://github.com/apache/spark/pull/58288) originally proposed deriving affected versions from fix versions. **In [my review](https://github.com/apache/spark/pull/58288#discussion_r3875010858), I suggested avoiding that default for patch backports**, because it could mark the corrective release as affected. In response, [the default was removed entirely](https://github.com/apache/spark/pull/58288#discussion_r3876097956).\n\n**Example 1: A patch backport receives no default.**\n\nSuppose the bug exists in released Spark `4.2.0`, but JIRA currently shows:\n\n- Affects Version: `5.0.0`\n- Fix Version: unset\n\nThe committer merges the fix into the development line and backports it to `branch-4.2`, targeting releases `4.4.0` and `4.2.1`.\n\nThe existing Fix Version prompt suggests:\n\n```text\nEnter comma-separated fix version(s) [4.4.0,4.2.1]:\n```\n\nAfter he/she accepts those fix versions, the script flags the affected-version mismatch. Because the earliest fix is a patch release, the Affects Version prompt still has no default. He/she types the version known to contain the bug:\n\n```text\nEnter comma-separated affects version(s) (blank to skip): 4.2.0\n```\n\nHere, `4.2.0` has the bug and `4.2.1` contains the fix. This preserves the protection requested in [my earlier review](https://github.com/apache/spark/pull/58288#discussion_r3875010858): pressing Enter must not automatically mark the corrective release as affected.\n\n**Example 2: An unreleased major or minor release receives a default.**\n\nSuppose the committer reproduces the bug in a `4.4.0-SNAPSHOT` build, but JIRA currently shows:\n\n- Affects Version: `5.0.0`\n- Fix Version: unset\n\nHe/she merges the fix into the development line for the upcoming `4.4.0` release.\n\nThe existing Fix Version prompt suggests:\n\n```text\nEnter comma-separated fix version(s) [4.4.0]:\n```\n\nAfter he/she accepts it, the script flags the affected-version mismatch.\n\n```text\n# Before this PR\nEnter comma-separated affects version(s) (blank to skip): 4.4.0\n\n# With this PR\nEnter comma-separated affects version(s) [4.4.0] (or 'skip'):\n```\n\nUsing `4.4.0` in both fields is reasonable here: the development build contained the bug, and the upcoming release will contain the fix.\n\nThe suggestion does not identify every affected release. If he/she also reproduces the bug in released `4.3.0`, he/she can override it:\n\n```text\nEnter comma-separated affects version(s) [4.4.0] (or 'skip'): 4.3.0,4.4.0\n```\n\n### Does this PR introduce _any_ user-facing change?\n\nYes, for committers using `dev/merge_spark_pr.py`: eligible affected-version prompts offer a default that Enter accepts.\n\nSpark runtime behavior is unchanged.\n\n### How was this patch tested?\n\n- `python3 -m doctest -v dev/merge_spark_pr.py`: all 125 doctest examples passed, covering unreleased major/minor versions, patch releases, mixed fix versions, a released earliest version, numeric version ordering, and empty or unrecognized versions.\n- Added persistent prompt tests in the module-level `__test__` dictionary. They exercise the real input handling with a mocked JIRA writer, verifying that blank input accepts and appends the suggested version and explicit `skip` makes no writer calls.\n- Ten local prompt smoke checks with a mocked JIRA writer passed: accepting and appending, overwriting, keeping, skipping, overriding, retrying invalid input, omitting defaults for patch/mixed/released versions, and leaving already-consistent tickets untouched. These checks made no external writes.\n- Ruff 0.14.8 lint and formatting checks passed for `dev/merge_spark_pr.py`; `git diff --check` passed.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: OpenAI Codex (GPT-6)\n\nCloses #58983 from szehon-ho/codex/jira-affects-version-default.\n\nAuthored-by: Szehon Ho <szehon.apache@gmail.com>\nSigned-off-by: Szehon Ho <szehon.apache@gmail.com>",
+            "tree": {
+                "sha": "e85e19ad050db37d16618389536c8c9618a9e613",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/e85e19ad050db37d16618389536c8c9618a9e613"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/366d78b5a73e00f5f7d6b7f7f45782c91d195957",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/366d78b5a73e00f5f7d6b7f7f45782c91d195957",
+        "html_url": "https://github.com/apache/spark/commit/366d78b5a73e00f5f7d6b7f7f45782c91d195957",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/366d78b5a73e00f5f7d6b7f7f45782c91d195957/comments",
+        "author": {
+            "login": "szehon-ho",
+            "id": 20555759,
+            "node_id": "MDQ6VXNlcjIwNTU1NzU5",
+            "avatar_url": "https://avatars.githubusercontent.com/u/20555759?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/szehon-ho",
+            "html_url": "https://github.com/szehon-ho",
+            "followers_url": "https://api.github.com/users/szehon-ho/followers",
+            "following_url": "https://api.github.com/users/szehon-ho/following{/other_user}",
+            "gists_url": "https://api.github.com/users/szehon-ho/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/szehon-ho/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/szehon-ho/subscriptions",
+            "organizations_url": "https://api.github.com/users/szehon-ho/orgs",
+            "repos_url": "https://api.github.com/users/szehon-ho/repos",
+            "events_url": "https://api.github.com/users/szehon-ho/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/szehon-ho/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "szehon-ho",
+            "id": 20555759,
+            "node_id": "MDQ6VXNlcjIwNTU1NzU5",
+            "avatar_url": "https://avatars.githubusercontent.com/u/20555759?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/szehon-ho",
+            "html_url": "https://github.com/szehon-ho",
+            "followers_url": "https://api.github.com/users/szehon-ho/followers",
+            "following_url": "https://api.github.com/users/szehon-ho/following{/other_user}",
+            "gists_url": "https://api.github.com/users/szehon-ho/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/szehon-ho/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/szehon-ho/subscriptions",
+            "organizations_url": "https://api.github.com/users/szehon-ho/orgs",
+            "repos_url": "https://api.github.com/users/szehon-ho/repos",
+            "events_url": "https://api.github.com/users/szehon-ho/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/szehon-ho/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "e91d22d3247be55fed37940e32d91c0afc0ab682",
+                "url": "https://api.github.com/repos/apache/spark/commits/e91d22d3247be55fed37940e32d91c0afc0ab682",
+                "html_url": "https://github.com/apache/spark/commit/e91d22d3247be55fed37940e32d91c0afc0ab682"
+            }
+        ]
+    },
+    {
+        "sha": "e91d22d3247be55fed37940e32d91c0afc0ab682",
+        "node_id": "C_kwDOAQXtWtoAKGU5MWQyMmQzMjQ3YmU1NWZlZDM3OTQwZTMyZDkxYzBhZmMwYWI2ODI",
+        "commit": {
+            "author": {
+                "name": "Holden Karau",
+                "email": "holden@pigscanfly.ca",
+                "date": "2026-09-25T00:31:39Z"
+            },
+            "committer": {
+                "name": "Holden Karau",
+                "email": "holden.karau@snowflake.com",
+                "date": "2026-09-25T00:31:39Z"
+            },
+            "message": "[SPARK-59334][CORE] Handle invalid application/worker links\n\n### What changes were proposed in this pull request?\n\nDrop invalid links rather than break rendering\n\n### Why are the changes needed?\n\nApplication and worker UI addresses come from external registrants and could contain bad/invalid info. Filter it out to prevent the UI from breaking.\n\n### Does this PR introduce _any_ user-facing change?\n\nNo\n\n### How was this patch tested?\n\nNew UIUtilSuite test\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nYes\nGenerated-by: Cursor (Kimi K3)\n\nCloses #58622 from holdenk/improve-ui-link-rendering-part2.\n\nLead-authored-by: Holden Karau <holden@pigscanfly.ca>\nCo-authored-by: Holden Karau <holden.karau@snowflake.com>\nSigned-off-by: Holden Karau <holden.karau@snowflake.com>",
+            "tree": {
+                "sha": "64fc49af31d1c17b1520ee42a61773675b3f3b69",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/64fc49af31d1c17b1520ee42a61773675b3f3b69"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/e91d22d3247be55fed37940e32d91c0afc0ab682",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/e91d22d3247be55fed37940e32d91c0afc0ab682",
+        "html_url": "https://github.com/apache/spark/commit/e91d22d3247be55fed37940e32d91c0afc0ab682",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/e91d22d3247be55fed37940e32d91c0afc0ab682/comments",
+        "author": {
+            "login": "holdenk",
+            "id": 59893,
+            "node_id": "MDQ6VXNlcjU5ODkz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59893?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/holdenk",
+            "html_url": "https://github.com/holdenk",
+            "followers_url": "https://api.github.com/users/holdenk/followers",
+            "following_url": "https://api.github.com/users/holdenk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/holdenk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/holdenk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/holdenk/subscriptions",
+            "organizations_url": "https://api.github.com/users/holdenk/orgs",
+            "repos_url": "https://api.github.com/users/holdenk/repos",
+            "events_url": "https://api.github.com/users/holdenk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/holdenk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "sfc-gh-hkarau",
+            "id": 237870419,
+            "node_id": "U_kgDODi2dUw",
+            "avatar_url": "https://avatars.githubusercontent.com/u/237870419?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/sfc-gh-hkarau",
+            "html_url": "https://github.com/sfc-gh-hkarau",
+            "followers_url": "https://api.github.com/users/sfc-gh-hkarau/followers",
+            "following_url": "https://api.github.com/users/sfc-gh-hkarau/following{/other_user}",
+            "gists_url": "https://api.github.com/users/sfc-gh-hkarau/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/sfc-gh-hkarau/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/sfc-gh-hkarau/subscriptions",
+            "organizations_url": "https://api.github.com/users/sfc-gh-hkarau/orgs",
+            "repos_url": "https://api.github.com/users/sfc-gh-hkarau/repos",
+            "events_url": "https://api.github.com/users/sfc-gh-hkarau/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/sfc-gh-hkarau/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "9907192c92f35202d21cfef1a5f1b441c5e81546",
+                "url": "https://api.github.com/repos/apache/spark/commits/9907192c92f35202d21cfef1a5f1b441c5e81546",
+                "html_url": "https://github.com/apache/spark/commit/9907192c92f35202d21cfef1a5f1b441c5e81546"
+            }
+        ]
+    },
+    {
+        "sha": "9907192c92f35202d21cfef1a5f1b441c5e81546",
+        "node_id": "C_kwDOAQXtWtoAKDk5MDcxOTJjOTJmMzUyMDJkMjFjZmVmMWE1ZjFiNDQxYzVlODE1NDY",
+        "commit": {
+            "author": {
+                "name": "Holden Karau",
+                "email": "holden@pigscanfly.ca",
+                "date": "2026-09-25T00:00:07Z"
+            },
+            "committer": {
+                "name": "Holden Karau",
+                "email": "holden.karau@snowflake.com",
+                "date": "2026-09-25T00:00:07Z"
+            },
+            "message": "[SPARK-58626][PYTHON][SQL] Optimize evaluating inputs to transpiled UDFs\n\n### What changes were proposed in this pull request?\n\n`_udf_param_N` in a transpiled option used to be replaced by a copy of the bound argument, so an\nargument the body reads N times was evaluated N times. Each one is now a reference to the call's Nth\nargument, the argument itself stays on the Python UDF node, and `ConvertToCatalyst` decides per call\nwhat to do with it.\n\nThe rule: an argument the body reads more than once is computed once a row, or we don't transpile the\ncall at all.\n\nHowever subsequent optimizations may decide to inline some deterministic expressions which will change this.\n\n### Why are the changes needed?\n\nReading an argument twice evaluated it twice. That's wasted work for anything expensive and a potentiall incorrect for non-deterministic inputs.\n\n### Does this PR introduce _any_ user-facing change?\n\nYes.\n\n- Each argument a body reads is evaluated once a row, so a body reading a `rand()` argument twice sees\n  one draw rather than two.\n- A body that reads an expensive argument more than once runs as interpreted Python where no column\n  fits, instead of lowering with the argument recomputed at each read.\n- A call reading both sides of a non-inner join condition, with a parameter read more than once, keeps\n  the Python UDF, which `ExtractPythonUDFFromJoinCondition` turns down\n  (`UNSUPPORTED_FEATURE.PYTHON_UDF_IN_ON_CLAUSE`) -- the same result as with transpilation off.\n\n### How was this patch tested?\n\n`ConvertToCatalystSuite` for the plan shapes: one column per distinct argument, a column per call, one\ncolumn for a call sitting in two slots of one operator, per-argument placement, and the Python UDF kept\nfor each position that can't hold a column. Plus two for the walkers themselves: `substitute` leaving a\nnested call's options alone, and a reference to an argument the call hasn't got being a classed error\nrather than an unresolved node. Its helper runs `LogicalPlanIntegrity.validateOptimizedPlan` around\nevery case, and walks every operator for a dangling reference itself, since\n`validateNoDanglingReferences` only ever looks at the root and the root is never the Project this\ninserts.\n\n`TranspiledUDFParameterSuite` for real plans: the grouping key's column, the `Aggregate` and lambda\nfallbacks, an `Aggregate` whose only call sits in a subquery, the straddling non-inner join, a draw\nabove a `Join` keeping the join's condition -- at the child and again with a `select` in between -- and\na MERGE instruction condition where an argument that mods by zero only raises if the column is really\nthere.\n\n`test_udf_transpile_unit.py` for values rather than plans: one evaluation per parameter, a draw per\ncall, the fallbacks, and `orderBy(u(rand()))`, `repartition(2, u(rand()))` and `groupBy(u(rand()))`,\nwhich used to fail with `INVALID_UDF_PARAMETER_PLACEHOLDER_INDEX`.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nYes, Claude.\n\nGenerated-by: Claude (Opus 5)\n\nCloses #58189 from holdenk/SPARK-58626-avoid-double-eval.\n\nLead-authored-by: Holden Karau <holden@pigscanfly.ca>\nCo-authored-by: Holden Karau <holden.karau@snowflake.com>\nSigned-off-by: Holden Karau <holden.karau@snowflake.com>",
+            "tree": {
+                "sha": "73d425e5bea99fea6ab26753d20f1eebb897a0f3",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/73d425e5bea99fea6ab26753d20f1eebb897a0f3"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/9907192c92f35202d21cfef1a5f1b441c5e81546",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/9907192c92f35202d21cfef1a5f1b441c5e81546",
+        "html_url": "https://github.com/apache/spark/commit/9907192c92f35202d21cfef1a5f1b441c5e81546",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/9907192c92f35202d21cfef1a5f1b441c5e81546/comments",
+        "author": {
+            "login": "holdenk",
+            "id": 59893,
+            "node_id": "MDQ6VXNlcjU5ODkz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59893?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/holdenk",
+            "html_url": "https://github.com/holdenk",
+            "followers_url": "https://api.github.com/users/holdenk/followers",
+            "following_url": "https://api.github.com/users/holdenk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/holdenk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/holdenk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/holdenk/subscriptions",
+            "organizations_url": "https://api.github.com/users/holdenk/orgs",
+            "repos_url": "https://api.github.com/users/holdenk/repos",
+            "events_url": "https://api.github.com/users/holdenk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/holdenk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "sfc-gh-hkarau",
+            "id": 237870419,
+            "node_id": "U_kgDODi2dUw",
+            "avatar_url": "https://avatars.githubusercontent.com/u/237870419?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/sfc-gh-hkarau",
+            "html_url": "https://github.com/sfc-gh-hkarau",
+            "followers_url": "https://api.github.com/users/sfc-gh-hkarau/followers",
+            "following_url": "https://api.github.com/users/sfc-gh-hkarau/following{/other_user}",
+            "gists_url": "https://api.github.com/users/sfc-gh-hkarau/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/sfc-gh-hkarau/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/sfc-gh-hkarau/subscriptions",
+            "organizations_url": "https://api.github.com/users/sfc-gh-hkarau/orgs",
+            "repos_url": "https://api.github.com/users/sfc-gh-hkarau/repos",
+            "events_url": "https://api.github.com/users/sfc-gh-hkarau/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/sfc-gh-hkarau/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "55bd2b643777918fe688e7bf498197e0c1ba17c6",
+                "url": "https://api.github.com/repos/apache/spark/commits/55bd2b643777918fe688e7bf498197e0c1ba17c6",
+                "html_url": "https://github.com/apache/spark/commit/55bd2b643777918fe688e7bf498197e0c1ba17c6"
+            }
+        ]
+    },
+    {
+        "sha": "55bd2b643777918fe688e7bf498197e0c1ba17c6",
+        "node_id": "C_kwDOAQXtWtoAKDU1YmQyYjY0Mzc3NzkxOGZlNjg4ZTdiZjQ5ODE5N2UwYzFiYTE3YzY",
+        "commit": {
+            "author": {
+                "name": "Holden Karau",
+                "email": "holden@pigscanfly.ca",
+                "date": "2026-09-24T23:44:39Z"
+            },
+            "committer": {
+                "name": "Holden Karau",
+                "email": "holden.karau@snowflake.com",
+                "date": "2026-09-24T23:44:39Z"
+            },
+            "message": "[SPARK-59069][PYTHON] Transpile Python UDFs with positional-only params\n\n### What changes were proposed in this pull request?\nTranspile position only UDFs.\n\n### Why are the changes needed?\nPosition only UDFs were previously rejected\n\n### Does this PR introduce _any_ user-facing change?\nPositional only UDFs can now transpile\n\n### How was this patch tested?\nNew tests with position only UDFs.\n\n### Was this patch authored or co-authored using generative AI tooling?\nYes, worked with claude\n\nGenerated-by: Claude (Opus 5)\n\nCloses #58395 from holdenk/SPARK-59069-transpile-positional-only-params.\n\nLead-authored-by: Holden Karau <holden@pigscanfly.ca>\nCo-authored-by: Holden Karau <holden.karau@snowflake.com>\nSigned-off-by: Holden Karau <holden.karau@snowflake.com>",
+            "tree": {
+                "sha": "1a771d0f4a9bcb551a4b8a7037b24d2a77efa27f",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/1a771d0f4a9bcb551a4b8a7037b24d2a77efa27f"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/55bd2b643777918fe688e7bf498197e0c1ba17c6",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/55bd2b643777918fe688e7bf498197e0c1ba17c6",
+        "html_url": "https://github.com/apache/spark/commit/55bd2b643777918fe688e7bf498197e0c1ba17c6",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/55bd2b643777918fe688e7bf498197e0c1ba17c6/comments",
+        "author": {
+            "login": "holdenk",
+            "id": 59893,
+            "node_id": "MDQ6VXNlcjU5ODkz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59893?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/holdenk",
+            "html_url": "https://github.com/holdenk",
+            "followers_url": "https://api.github.com/users/holdenk/followers",
+            "following_url": "https://api.github.com/users/holdenk/following{/other_user}",
+            "gists_url": "https://api.github.com/users/holdenk/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/holdenk/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/holdenk/subscriptions",
+            "organizations_url": "https://api.github.com/users/holdenk/orgs",
+            "repos_url": "https://api.github.com/users/holdenk/repos",
+            "events_url": "https://api.github.com/users/holdenk/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/holdenk/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "sfc-gh-hkarau",
+            "id": 237870419,
+            "node_id": "U_kgDODi2dUw",
+            "avatar_url": "https://avatars.githubusercontent.com/u/237870419?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/sfc-gh-hkarau",
+            "html_url": "https://github.com/sfc-gh-hkarau",
+            "followers_url": "https://api.github.com/users/sfc-gh-hkarau/followers",
+            "following_url": "https://api.github.com/users/sfc-gh-hkarau/following{/other_user}",
+            "gists_url": "https://api.github.com/users/sfc-gh-hkarau/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/sfc-gh-hkarau/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/sfc-gh-hkarau/subscriptions",
+            "organizations_url": "https://api.github.com/users/sfc-gh-hkarau/orgs",
+            "repos_url": "https://api.github.com/users/sfc-gh-hkarau/repos",
+            "events_url": "https://api.github.com/users/sfc-gh-hkarau/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/sfc-gh-hkarau/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "7e4861e334ba5db8bc3b946ec5f2bbdb8ecc3cb9",
+                "url": "https://api.github.com/repos/apache/spark/commits/7e4861e334ba5db8bc3b946ec5f2bbdb8ecc3cb9",
+                "html_url": "https://github.com/apache/spark/commit/7e4861e334ba5db8bc3b946ec5f2bbdb8ecc3cb9"
+            }
+        ]
+    }
+]
