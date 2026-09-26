@@ -1,0 +1,740 @@
+[
+    {
+        "sha": "9a20f8b3693c527485e432a57d3fcac6df8eda86",
+        "node_id": "C_kwDOAQXtWtoAKDlhMjBmOGIzNjkzYzUyNzQ4NWU0MzJhNTdkM2ZjYWM2ZGY4ZWRhODY",
+        "commit": {
+            "author": {
+                "name": "Dongjoon Hyun",
+                "email": "dongjoon@apache.org",
+                "date": "2026-08-09T20:52:43Z"
+            },
+            "committer": {
+                "name": "Dongjoon Hyun",
+                "email": "dongjoon@apache.org",
+                "date": "2026-08-09T20:52:43Z"
+            },
+            "message": "[SPARK-58678][CORE][TEST] Add `OpenHashMapBenchmark`\n\n### What changes were proposed in this pull request?\n\nThis PR aims to add `OpenHashMapBenchmark` to measure the performance of\n`org.apache.spark.util.collection.OpenHashMap` against `java.util.HashMap` in three scenarios\nmodeled on Spark's real usage:\n\n- **Insert**: inserting 1M distinct String keys via `update`/`put`\n- **Aggregate**: 5M `changeValue`/`merge` operations over 1M String keys (the typical\n  aggregation pattern, e.g. `Mode`, `countByValue`)\n- **Lookup**: looking up 1M String keys in random order\n\n### Why are the changes needed?\n\n`OpenHashMap` claims that it is \"about 5X faster than java.util.HashMap\".\n\nhttps://github.com/apache/spark/blob/8645e2c08929bbc1ef2ef66b442f525814f92220/core/src/main/scala/org/apache/spark/util/collection/OpenHashMap.scala#L24\n\nHowever, This claim dates from 2013 (pre-JDK 8), and there has been no benchmark in the repository to\nverify it. On modern JDKs, `java.util.HashMap` has improved significantly. According to this benchmark, Java is much faster for **Insert** and **Lookup**.\n\n- In case of `Insert`, `java.util.HashMap` is 4.6X, 5.5X, 6.5X faster in Java 17, 21, and 25, respectively.\n\n- Note that `OpenHashMap` still uses about 2.2x less memory than `java.util.HashMap` for\n`String -> Long` entries thanks to its specialized primitive value storage. This benchmark\nprovides a consistent way to track the trade-off across JDK versions and future improvements.\n\n### Does this PR introduce _any_ user-facing change?\n\nNo. This is a test-only change.\n\n### How was this patch tested?\n\nManually ran the benchmark:\n\n```\nbuild/sbt \"core/Test/runMain org.apache.spark.util.collection.OpenHashMapBenchmark\"\n```\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: Claude Fable 5\n\nCloses #57881 from dongjoon-hyun/SPARK-58678-2.\n\nAuthored-by: Dongjoon Hyun <dongjoon@apache.org>\nSigned-off-by: Dongjoon Hyun <dongjoon@apache.org>",
+            "tree": {
+                "sha": "08f194cda4e7e07f766eedc3822f532bcdd9d1c8",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/08f194cda4e7e07f766eedc3822f532bcdd9d1c8"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/9a20f8b3693c527485e432a57d3fcac6df8eda86",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/9a20f8b3693c527485e432a57d3fcac6df8eda86",
+        "html_url": "https://github.com/apache/spark/commit/9a20f8b3693c527485e432a57d3fcac6df8eda86",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/9a20f8b3693c527485e432a57d3fcac6df8eda86/comments",
+        "author": {
+            "login": "dongjoon-hyun",
+            "id": 9700541,
+            "node_id": "MDQ6VXNlcjk3MDA1NDE=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/9700541?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dongjoon-hyun",
+            "html_url": "https://github.com/dongjoon-hyun",
+            "followers_url": "https://api.github.com/users/dongjoon-hyun/followers",
+            "following_url": "https://api.github.com/users/dongjoon-hyun/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dongjoon-hyun/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dongjoon-hyun/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dongjoon-hyun/subscriptions",
+            "organizations_url": "https://api.github.com/users/dongjoon-hyun/orgs",
+            "repos_url": "https://api.github.com/users/dongjoon-hyun/repos",
+            "events_url": "https://api.github.com/users/dongjoon-hyun/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dongjoon-hyun/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "dongjoon-hyun",
+            "id": 9700541,
+            "node_id": "MDQ6VXNlcjk3MDA1NDE=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/9700541?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dongjoon-hyun",
+            "html_url": "https://github.com/dongjoon-hyun",
+            "followers_url": "https://api.github.com/users/dongjoon-hyun/followers",
+            "following_url": "https://api.github.com/users/dongjoon-hyun/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dongjoon-hyun/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dongjoon-hyun/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dongjoon-hyun/subscriptions",
+            "organizations_url": "https://api.github.com/users/dongjoon-hyun/orgs",
+            "repos_url": "https://api.github.com/users/dongjoon-hyun/repos",
+            "events_url": "https://api.github.com/users/dongjoon-hyun/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dongjoon-hyun/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "e9fbec7b538b8f5e4105c8dc030e1e510af87974",
+                "url": "https://api.github.com/repos/apache/spark/commits/e9fbec7b538b8f5e4105c8dc030e1e510af87974",
+                "html_url": "https://github.com/apache/spark/commit/e9fbec7b538b8f5e4105c8dc030e1e510af87974"
+            }
+        ]
+    },
+    {
+        "sha": "e9fbec7b538b8f5e4105c8dc030e1e510af87974",
+        "node_id": "C_kwDOAQXtWtoAKGU5ZmJlYzdiNTM4YjhmNWU0MTA1YzhkYzAzMGUxZTUxMGFmODc5NzQ",
+        "commit": {
+            "author": {
+                "name": "Uros Bojanic",
+                "email": "221401595+uros-b@users.noreply.github.com",
+                "date": "2026-08-09T20:32:44Z"
+            },
+            "committer": {
+                "name": "Uros Bojanic",
+                "email": "221401595+uros-b@users.noreply.github.com",
+                "date": "2026-08-09T20:32:44Z"
+            },
+            "message": "[SPARK-58661][SQL][DOC] Document return values and fix stale column references in DataFrameStatFunctions\n\n### What changes were proposed in this pull request?\n\nTwo scaladoc fixes in `DataFrameStatFunctions`:\n\n1. Adds the missing `return` tag to the four `bloomFilter` overloads.\n2. Corrects the `return` text of the two `countMinSketch(col: Column, ...)` overloads, which described the result as being over column `colName` even though those overloads declare `col`.\n\n### Why are the changes needed?\n\nThe `countMinSketch` overloads all document their return value while the parallel `bloomFilter` overloads document none, so the published API docs are inconsistent between two families of methods that the file otherwise describes in parallel wording. Each added tag names the parameter its own overload declares, alternating `colName`/`col` to match the four signatures.\n\nThe two stale `colName` references are a copy-paste artifact of the unified Scala interface refactor: the text was carried over from the `colName: String` overloads without being updated for the `Column` ones. The `colName` overloads themselves are correct and are left untouched.\n\n### Does this PR introduce _any_ user-facing change?\n\nNo, other than the corrected API documentation.\n\n### How was this patch tested?\n\nScaladoc only, so no behavior to test. Stripping comments from the file before and after the change yields byte-identical source, confirming no signature or code change and no binary compatibility impact.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: Claude Code (Opus 4.8)\n\nCloses #57868 from uros-b/apidoc-dataframestatfunctions.\n\nAuthored-by: Uros Bojanic <221401595+uros-b@users.noreply.github.com>\nSigned-off-by: Uros Bojanic <221401595+uros-b@users.noreply.github.com>",
+            "tree": {
+                "sha": "6c082a7d7182589431a72f82a49f3e04c9ff0cb1",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/6c082a7d7182589431a72f82a49f3e04c9ff0cb1"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/e9fbec7b538b8f5e4105c8dc030e1e510af87974",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/e9fbec7b538b8f5e4105c8dc030e1e510af87974",
+        "html_url": "https://github.com/apache/spark/commit/e9fbec7b538b8f5e4105c8dc030e1e510af87974",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/e9fbec7b538b8f5e4105c8dc030e1e510af87974/comments",
+        "author": {
+            "login": "uros-b",
+            "id": 221401595,
+            "node_id": "U_kgDODTJR-w",
+            "avatar_url": "https://avatars.githubusercontent.com/u/221401595?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/uros-b",
+            "html_url": "https://github.com/uros-b",
+            "followers_url": "https://api.github.com/users/uros-b/followers",
+            "following_url": "https://api.github.com/users/uros-b/following{/other_user}",
+            "gists_url": "https://api.github.com/users/uros-b/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/uros-b/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/uros-b/subscriptions",
+            "organizations_url": "https://api.github.com/users/uros-b/orgs",
+            "repos_url": "https://api.github.com/users/uros-b/repos",
+            "events_url": "https://api.github.com/users/uros-b/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/uros-b/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "uros-b",
+            "id": 221401595,
+            "node_id": "U_kgDODTJR-w",
+            "avatar_url": "https://avatars.githubusercontent.com/u/221401595?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/uros-b",
+            "html_url": "https://github.com/uros-b",
+            "followers_url": "https://api.github.com/users/uros-b/followers",
+            "following_url": "https://api.github.com/users/uros-b/following{/other_user}",
+            "gists_url": "https://api.github.com/users/uros-b/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/uros-b/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/uros-b/subscriptions",
+            "organizations_url": "https://api.github.com/users/uros-b/orgs",
+            "repos_url": "https://api.github.com/users/uros-b/repos",
+            "events_url": "https://api.github.com/users/uros-b/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/uros-b/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "8645e2c08929bbc1ef2ef66b442f525814f92220",
+                "url": "https://api.github.com/repos/apache/spark/commits/8645e2c08929bbc1ef2ef66b442f525814f92220",
+                "html_url": "https://github.com/apache/spark/commit/8645e2c08929bbc1ef2ef66b442f525814f92220"
+            }
+        ]
+    },
+    {
+        "sha": "8645e2c08929bbc1ef2ef66b442f525814f92220",
+        "node_id": "C_kwDOAQXtWtoAKDg2NDVlMmMwODkyOWJiYzFlZjJlZjY2YjQ0MmY1MjU4MTRmOTIyMjA",
+        "commit": {
+            "author": {
+                "name": "Peter Toth",
+                "email": "peter.toth@gmail.com",
+                "date": "2026-08-09T09:53:52Z"
+            },
+            "committer": {
+                "name": "Peter Toth",
+                "email": "peter.toth@gmail.com",
+                "date": "2026-08-09T09:53:52Z"
+            },
+            "message": "[SPARK-58549][SQL] Preserve key-grouped partitioning and ordering across a DSv2 scan merge\n\n### What changes were proposed in this pull request?\n\nFollow-up to SPARK-40259 (subquery plan merge for DataSource V2 scans).\n\nToday the DSv2 scan merge declines whenever either input scan reports key-grouped partitioning or ordering. The rebuilt merged scan carries neither on its own, so fusing the two scans could drop a partitioning/ordering the original plan relied on and force an extra shuffle or sort. Declining is safe but leaves the merge unused for any partitioned/ordered source.\n\nThis PR lets the merge proceed and re-derives the merged scan's own report instead of declining up front:\n\n- Drop the `keyGroupedPartitioning`/`ordering` conjuncts from the `mergeable` gate in `PlanMerger.tryMergeScanRelations`.\n- At the leaf, combine the two inputs' reports (np's remapped into cp's relation space) into the single report the merge must preserve:\n  - key-grouped partitioning: the two must be equal (`combineRequiredKeyGroupedPartitioning`);\n  - ordering: the stronger of the two, i.e. the one that satisfies the other (`combineRequiredOrdering`).\n\n  Both compare reported expressions by transform semantics (`TransformExpression.isSameFunction`, the way a storage-partitioned join compares its two sides) rather than by canonical equality. `V2ExpressionUtils` binds a transform function afresh on every derivation, and `canonicalName` is a documented obligation (its default returns a random UUID to force an override) while `equals` on `BoundFunction` is required nowhere -- so for a connector meeting only the documented contract, canonical equality calls two identical `bucket(4, id)` reports different and declines the merge. Connectors that do define `equals` semantically are unaffected, but that is a courtesy rather than a contract.\n\n  If the inputs are incompatible (differing non-empty kGP, or neither ordering satisfies the other), no rebuilt scan can keep both not-worse, so the merge is declined right there -- before rebuilding -- saving a scan rebuild.\n- After `V2ScanRelationPushDown.rebuildScan`, re-derive the merged scan's partitioning/ordering by running `V2ScanPartitioningAndOrdering` on the single merged scan node, then check it against the combined required report (`mergeDegradesReporting`): decline if the merged scan's kGP does not match, or its ordering does not satisfy, what was required. The check runs at the build's callers, and per build attempt, so a report degradation stays distinguishable from a strict filter that cannot be re-enforced. The required report is carried through `DSv2DeferredScan` for the deferred (under-`Filter`) build.\n\nTwo new opt-in configs gate accepting a degradation instead of declining (both default `false`), so with the defaults this is a pure improvement -- merge when not worse, decline on loss:\n\n- `spark.sql.optimizer.mergeSubplans.dsv2ScanMerge.keyGroupedPartitioningDegradation.enabled`\n- `spark.sql.optimizer.mergeSubplans.dsv2ScanMerge.orderingDegradation.enabled`\n\nOnly sources that declare the `SCAN_MERGING` table capability are affected.\n\n### Why are the changes needed?\n\nThe parent feature (SPARK-40259) conservatively declines a merge whenever an input reports key-grouped partitioning or ordering, to avoid forcing a shuffle/sort that the original plan avoided. That is correct but overly broad: when the rebuilt merged scan re-derives the same (or a stronger) report, fusing the scans loses nothing and still removes a duplicate scan -- which matters for partitioned/ordered sources, e.g. an SPJ join inside the merged subplan. This PR keeps the safety (decline on real degradation) while capturing the merge when it is genuinely not worse.\n\n### Does this PR introduce _any_ user-facing change?\n\nNo. The two new configs are opt-in and default to `false`, and no built-in source declares `SCAN_MERGING`, so there is no behavior change for existing sources.\n\n### How was this patch tested?\n\nNew and existing unit tests, all under `sql/core`:\n\n- `MergeSubplansSuite`:\n  - default-decline when a single input reports kGP/ordering the rebuilt scan drops (degradation);\n  - default-decline when the two inputs report incompatible kGP/ordering (declined at the leaf, before rebuild);\n  - config-allows-degradation: the merge proceeds to the plain column union under each `...Degradation.enabled=true`, both for a single reporting input (the degradation is found after the rebuild) and for two incompatible ones (declined before it);\n  - two independently derived `bucket(4, a)` reports merge and the rebuilt scan keeps the report -- the only test that reaches the transform comparison. It uses a `FunctionCatalog` fixture that binds a fresh `BoundFunction` per call, the way a real connector does; Spark's own `UnboundBucketFunction` returns a singleton, so a fixture built on that would pass with or without the fix;\n  - the merge proceeds when the rebuilt scan re-derives the required ordering, and declines when it re-derives less than the two inputs' combined (stronger) ordering;\n  - the deferred (under-`Filter`) build path enforces the required report too: decline by default, merge with the config on;\n  - the deferred build checks the report on EACH attempt, so a source that reports only over the unpruned file set still merges on the strict-only attempt -- which is what the leaf builds when no `Filter` is above the scan, so checking only the first attempt would leave the deferred path weaker than the leaf path;\n  - the pre-existing empty-report case still merges.\n- `DSv2PlanMergingSuite`: an end-to-end test that a scan merge preserves the sources' reported key-grouped partitioning, using a new `SCAN_MERGING` fixture (`InMemoryScanMergingReportingCatalog`/`InMemoryScanMergingReportingTable`) that keeps its reported partitioning (no `NonReportingScan` wrapper), an identity-partitioned table under `spark.sql.sources.v2.bucketing.enabled=true`, and two scalar subqueries reading the partition column. It also asserts that the preserved partitioning reaches the physical plan, i.e. the merged `BatchScanExec` reports `KeyedPartitioning` on the partition column.\n\n`build/sbt 'sql/testOnly *MergeSubplansSuite *DSv2PlanMergingSuite *PlanMergingSuite'` -- 99 tests pass. `dev/lint-scala` clean.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: Claude Code (Opus 5)\n\nCloses #57753 from peter-toth/SPARK-58549-preserve-kgp-ordering-dsv2-scan-merge.\n\nAuthored-by: Peter Toth <peter.toth@gmail.com>\nSigned-off-by: Peter Toth <peter.toth@gmail.com>",
+            "tree": {
+                "sha": "1f6377ebbac981e137aa6fa2db4f1033cd8416c2",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/1f6377ebbac981e137aa6fa2db4f1033cd8416c2"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/8645e2c08929bbc1ef2ef66b442f525814f92220",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/8645e2c08929bbc1ef2ef66b442f525814f92220",
+        "html_url": "https://github.com/apache/spark/commit/8645e2c08929bbc1ef2ef66b442f525814f92220",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/8645e2c08929bbc1ef2ef66b442f525814f92220/comments",
+        "author": {
+            "login": "peter-toth",
+            "id": 7253827,
+            "node_id": "MDQ6VXNlcjcyNTM4Mjc=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/7253827?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/peter-toth",
+            "html_url": "https://github.com/peter-toth",
+            "followers_url": "https://api.github.com/users/peter-toth/followers",
+            "following_url": "https://api.github.com/users/peter-toth/following{/other_user}",
+            "gists_url": "https://api.github.com/users/peter-toth/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/peter-toth/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/peter-toth/subscriptions",
+            "organizations_url": "https://api.github.com/users/peter-toth/orgs",
+            "repos_url": "https://api.github.com/users/peter-toth/repos",
+            "events_url": "https://api.github.com/users/peter-toth/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/peter-toth/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "peter-toth",
+            "id": 7253827,
+            "node_id": "MDQ6VXNlcjcyNTM4Mjc=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/7253827?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/peter-toth",
+            "html_url": "https://github.com/peter-toth",
+            "followers_url": "https://api.github.com/users/peter-toth/followers",
+            "following_url": "https://api.github.com/users/peter-toth/following{/other_user}",
+            "gists_url": "https://api.github.com/users/peter-toth/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/peter-toth/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/peter-toth/subscriptions",
+            "organizations_url": "https://api.github.com/users/peter-toth/orgs",
+            "repos_url": "https://api.github.com/users/peter-toth/repos",
+            "events_url": "https://api.github.com/users/peter-toth/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/peter-toth/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "daba9c6894c2c47a8088c2839938e538db8676ec",
+                "url": "https://api.github.com/repos/apache/spark/commits/daba9c6894c2c47a8088c2839938e538db8676ec",
+                "html_url": "https://github.com/apache/spark/commit/daba9c6894c2c47a8088c2839938e538db8676ec"
+            }
+        ]
+    },
+    {
+        "sha": "daba9c6894c2c47a8088c2839938e538db8676ec",
+        "node_id": "C_kwDOAQXtWtoAKGRhYmE5YzY4OTRjMmM0N2E4MDg4YzI4Mzk5MzhlNTM4ZGI4Njc2ZWM",
+        "commit": {
+            "author": {
+                "name": "xuanyulu",
+                "email": "3507482091@qq.com",
+                "date": "2026-08-09T09:46:13Z"
+            },
+            "committer": {
+                "name": "Peter Toth",
+                "email": "peter.toth@gmail.com",
+                "date": "2026-08-09T09:46:13Z"
+            },
+            "message": "[SPARK-58578][SQL] Mark ApplyFunctionExpression stateful to prevent reusedRow data races under concurrent evaluation\n\n### What changes were proposed in this pull request?\n\nMark `ApplyFunctionExpression` as stateful and add a regression test verifying\nthat it produces a fresh expression instance.\n\n### Why are the changes needed?\n\nSibling QueryExecutions derived from the same base DataFrame can share the\nsame expression instance. When they execute concurrently, the mutable\nreusedRow can therefore be overwritten by another evaluator.\n\n### Does this PR introduce *any* user-facing change?\n\nYes. It prevents incorrect results during concurrent evaluation of\n`ApplyFunctionExpression`. There is no public API change.\n\n### How was this patch tested?\n\nAdded `ApplyFunctionExpressionSuite` and ran:\n\n    build/sbt 'catalyst/testOnly *ApplyFunctionExpressionSuite'\n    build/sbt 'catalyst/testOnly *DataSourceV2FunctionSuite'\n    dev/lint-scala\n\n### Was this patch authored or co-authored using generative AI tooling?\nGenerated-by: Codex (GPT-5)\n\nCloses #57789 from MrHappyEnding/SPARK-58578.\n\nAuthored-by: xuanyulu <3507482091@qq.com>\nSigned-off-by: Peter Toth <peter.toth@gmail.com>",
+            "tree": {
+                "sha": "f09f668a6bdfe712d840739c7d8a1157e8077b5b",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/f09f668a6bdfe712d840739c7d8a1157e8077b5b"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/daba9c6894c2c47a8088c2839938e538db8676ec",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/daba9c6894c2c47a8088c2839938e538db8676ec",
+        "html_url": "https://github.com/apache/spark/commit/daba9c6894c2c47a8088c2839938e538db8676ec",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/daba9c6894c2c47a8088c2839938e538db8676ec/comments",
+        "author": {
+            "login": "MrHappyEnding",
+            "id": 116081080,
+            "node_id": "U_kgDOButBuA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/116081080?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MrHappyEnding",
+            "html_url": "https://github.com/MrHappyEnding",
+            "followers_url": "https://api.github.com/users/MrHappyEnding/followers",
+            "following_url": "https://api.github.com/users/MrHappyEnding/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MrHappyEnding/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MrHappyEnding/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MrHappyEnding/subscriptions",
+            "organizations_url": "https://api.github.com/users/MrHappyEnding/orgs",
+            "repos_url": "https://api.github.com/users/MrHappyEnding/repos",
+            "events_url": "https://api.github.com/users/MrHappyEnding/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MrHappyEnding/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "peter-toth",
+            "id": 7253827,
+            "node_id": "MDQ6VXNlcjcyNTM4Mjc=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/7253827?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/peter-toth",
+            "html_url": "https://github.com/peter-toth",
+            "followers_url": "https://api.github.com/users/peter-toth/followers",
+            "following_url": "https://api.github.com/users/peter-toth/following{/other_user}",
+            "gists_url": "https://api.github.com/users/peter-toth/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/peter-toth/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/peter-toth/subscriptions",
+            "organizations_url": "https://api.github.com/users/peter-toth/orgs",
+            "repos_url": "https://api.github.com/users/peter-toth/repos",
+            "events_url": "https://api.github.com/users/peter-toth/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/peter-toth/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "1eef893d8935ae280bda7e1f7843dee212d90ae3",
+                "url": "https://api.github.com/repos/apache/spark/commits/1eef893d8935ae280bda7e1f7843dee212d90ae3",
+                "html_url": "https://github.com/apache/spark/commit/1eef893d8935ae280bda7e1f7843dee212d90ae3"
+            }
+        ]
+    },
+    {
+        "sha": "1eef893d8935ae280bda7e1f7843dee212d90ae3",
+        "node_id": "C_kwDOAQXtWtoAKDFlZWY4OTNkODkzNWFlMjgwYmRhN2UxZjc4NDNkZWUyMTJkOTBhZTM",
+        "commit": {
+            "author": {
+                "name": "SreeramaYeshwanthGowd",
+                "email": "yeshwanthgowdsreerama@gmail.com",
+                "date": "2026-08-09T03:09:01Z"
+            },
+            "committer": {
+                "name": "Wenchen Fan",
+                "email": "wenchen@databricks.com",
+                "date": "2026-08-09T03:09:01Z"
+            },
+            "message": "[SPARK-45900][SQL][PYTHON] Add xxh3_64 and xxh3_128 functions\n\n### What changes were proposed in this pull request?\n\nAdd two built in scalar SQL functions that hash their argument with the XXH3 algorithm:\n\n- `xxh3_64(expr)` returns a 64-bit hash as a `BIGINT`.\n- `xxh3_128(expr)` returns a 128-bit hash as a 32-character lowercase hex `STRING`.\n\n```\n> SELECT xxh3_64('Spark');\n 80997306238743657\n> SELECT xxh3_128('Spark');\n 7d57dd84c60c86ca1f4e82ab91a12b5e\n```\n\nAPI surface added:\n- SQL: `xxh3_64`, `xxh3_128`\n- Scala DataFrame: `functions.xxh3_64(col)`, `functions.xxh3_128(col)`\n- PySpark, classic and Spark Connect: `pyspark.sql.functions.xxh3_64` / `xxh3_128`\n\nImplementation notes:\n- A new `XXH3` Java class ports the XXH3 64-bit and 128-bit hashes from the reference implementation (github.com/Cyan4973/xxHash, per `doc/xxhash_spec.md`). It is a self contained port with no new dependency, mirroring the existing `XXH64` helper.\n- The output is byte compatible with the reference implementation, using the default seed 0 and the standard canonical serialization for the 128-bit result (high 64 bits then low 64 bits, big endian).\n- The two expressions live next to the other digest functions in `hash.scala` and follow the `md5` / `crc32` pattern: single argument, input implicitly cast to `BinaryType`, `nullIntolerant`, with `xxh3_64` returning `LongType` (like `crc32`) and `xxh3_128` returning a hex string (like `md5`).\n\n### Why are the changes needed?\n\nSpark's existing `xxhash64` returns 64 bits, which collides too often for large scale surrogate keys or deterministic sampling (a birthday collision becomes likely in the billions of rows). XXH3 is the modern successor to XXH64: `xxh3_128` provides a collision resistant 128-bit digest, and `xxh3_64` is a faster 64-bit alternative. This is a natural extension of the existing hash function family (`md5`, `crc32`, `xxhash64`).\n\nDesign decisions (worth an explicit review, as this is a permanent public API):\n- These are single argument digests that hash the raw bytes of one value with the default seed 0, so the output is byte compatible with the reference XXH3 and interoperates with the reference tools (for example `xxh128sum`). This differs from `xxhash64`, which is a variadic, structural hash with an internal seed (not reference compatible). The 128-bit result is the canonical XXH3 hex; the 64-bit result is the two's complement view of the unsigned XXH3 value, so its hex matches the reference while the signed decimal representation may differ.\n- Two functions with static return types are provided instead of one `xxhash3(expr, bits)` function, because a Spark expression needs a statically known result type.\n- `xxh3_128` returns a hex `STRING` (like `md5`), matching the reference tool's canonical hex output, rather than raw `BINARY`. A seeded variant could be added as a follow up.\n\n### Does this PR introduce _any_ user-facing change?\n\nYes. It adds two new built in SQL functions and their Scala and PySpark DataFrame API entries. No existing behavior changes.\n\n### How was this patch tested?\n\n- `XXH3Suite` validates the port against the reference implementation's known-answer vectors, covering every length branch (0, 1-3, 4-8, 9-16, 17-128, 129-240, and the long path) and block boundaries with both a zero and a non-zero seed, for both the 64-bit and 128-bit outputs.\n- `HashExpressionsSuite` checks the expressions' values, null handling, and interpreted vs codegen consistency.\n- SQL golden tests in `misc-functions.sql` (string and binary input, and null propagation), and regenerated `sql-expression-schema.md`.\n- PySpark doctests.\n\n### Was this patch authored or co-authored using generative AI tooling? No\n\nCloses #57690 from SreeramaYeshwanthGowd/add-xxh3-hash-functions.\n\nAuthored-by: SreeramaYeshwanthGowd <yeshwanthgowdsreerama@gmail.com>\nSigned-off-by: Wenchen Fan <wenchen@databricks.com>",
+            "tree": {
+                "sha": "d3b55325653b6e065987e1f2214910c158935f1d",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/d3b55325653b6e065987e1f2214910c158935f1d"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/1eef893d8935ae280bda7e1f7843dee212d90ae3",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/1eef893d8935ae280bda7e1f7843dee212d90ae3",
+        "html_url": "https://github.com/apache/spark/commit/1eef893d8935ae280bda7e1f7843dee212d90ae3",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/1eef893d8935ae280bda7e1f7843dee212d90ae3/comments",
+        "author": {
+            "login": "SreeramaYeshwanthGowd",
+            "id": 177580787,
+            "node_id": "U_kgDOCpWq8w",
+            "avatar_url": "https://avatars.githubusercontent.com/u/177580787?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/SreeramaYeshwanthGowd",
+            "html_url": "https://github.com/SreeramaYeshwanthGowd",
+            "followers_url": "https://api.github.com/users/SreeramaYeshwanthGowd/followers",
+            "following_url": "https://api.github.com/users/SreeramaYeshwanthGowd/following{/other_user}",
+            "gists_url": "https://api.github.com/users/SreeramaYeshwanthGowd/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/SreeramaYeshwanthGowd/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/SreeramaYeshwanthGowd/subscriptions",
+            "organizations_url": "https://api.github.com/users/SreeramaYeshwanthGowd/orgs",
+            "repos_url": "https://api.github.com/users/SreeramaYeshwanthGowd/repos",
+            "events_url": "https://api.github.com/users/SreeramaYeshwanthGowd/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/SreeramaYeshwanthGowd/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "cloud-fan",
+            "id": 3182036,
+            "node_id": "MDQ6VXNlcjMxODIwMzY=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/3182036?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/cloud-fan",
+            "html_url": "https://github.com/cloud-fan",
+            "followers_url": "https://api.github.com/users/cloud-fan/followers",
+            "following_url": "https://api.github.com/users/cloud-fan/following{/other_user}",
+            "gists_url": "https://api.github.com/users/cloud-fan/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/cloud-fan/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/cloud-fan/subscriptions",
+            "organizations_url": "https://api.github.com/users/cloud-fan/orgs",
+            "repos_url": "https://api.github.com/users/cloud-fan/repos",
+            "events_url": "https://api.github.com/users/cloud-fan/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/cloud-fan/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "b24247bac586c8014211fc73f207c5a46af73024",
+                "url": "https://api.github.com/repos/apache/spark/commits/b24247bac586c8014211fc73f207c5a46af73024",
+                "html_url": "https://github.com/apache/spark/commit/b24247bac586c8014211fc73f207c5a46af73024"
+            }
+        ]
+    },
+    {
+        "sha": "b24247bac586c8014211fc73f207c5a46af73024",
+        "node_id": "C_kwDOAQXtWtoAKGIyNDI0N2JhYzU4NmM4MDE0MjExZmM3M2YyMDdjNWE0NmFmNzMwMjQ",
+        "commit": {
+            "author": {
+                "name": "SreeramaYeshwanthGowd",
+                "email": "yeshwanthgowdsreerama@gmail.com",
+                "date": "2026-08-09T03:07:06Z"
+            },
+            "committer": {
+                "name": "Wenchen Fan",
+                "email": "wenchen@databricks.com",
+                "date": "2026-08-09T03:07:06Z"
+            },
+            "message": "[SPARK-58307][SQL][PYTHON] Add json_typeof function\n\n### What changes were proposed in this pull request?\n\nAdd a built in `json_typeof(json)` scalar function that returns the type of the outermost value in a JSON string, as one of `object`, `array`, `string`, `number`, `boolean`, or `null`. It returns SQL `NULL` when the input is not a valid JSON string or is an empty string.\n\nAPI surface added:\n- SQL: `json_typeof(json)`\n- Scala DataFrame: `functions.json_typeof(col)`\n- PySpark, classic and Spark Connect: `pyspark.sql.functions.json_typeof(col)`\n\nImplementation notes:\n- Modeled on the existing `json_object_keys` function: a `RuntimeReplaceable` expression whose replacement is a `StaticInvoke` into `JsonExpressionUtils`, using the same Jackson parser (`CreateJacksonParser` / `SharedFactory`) that already backs `json_array_length` and `json_object_keys`. No new dependency.\n- Like those functions, malformed input returns `NULL`: `json_typeof` reads the outermost value and consumes it, so a structurally invalid JSON value returns `NULL` (consistent with `json_object_keys`).\n- Both integer and floating point JSON numbers map to `number`, matching PostgreSQL and BigQuery.\n\n### Why are the changes needed?\n\nSpark can already ask a JSON string for its array length (`json_array_length`) and its object keys (`json_object_keys`), but not for the type of its outermost value. `json_typeof` completes that family. It is a lightweight top level type probe: unlike `schema_of_json`, which does full recursive schema inference and returns a DDL string such as `ARRAY<BIGINT>`, `json_typeof` returns a single simple type token. It is provided by PostgreSQL (`json_typeof` and `jsonb_typeof`) and BigQuery (`JSON_TYPE`), so it also improves parity with the engines Spark users migrate from.\n\n### Does this PR introduce _any_ user-facing change?\n\nYes. It adds a new built in SQL function `json_typeof` and the corresponding Scala and PySpark DataFrame API entries. No existing behavior changes.\n\nExample:\n\n```\nspark-sql> SELECT json_typeof('{\"a\": 1}');\nobject\nspark-sql> SELECT json_typeof('[1, 2, 3]');\narray\nspark-sql> SELECT json_typeof('123');\nnumber\nspark-sql> SELECT json_typeof('not json');\nNULL\n```\n\n### How was this patch tested?\n\nAdded catalyst unit tests in `JsonExpressionsSuite` covering each JSON type (object, array, string, number, boolean, null), invalid and empty inputs returning null, and null propagation, and a DataFrame API test in `JsonFunctionsSuite`. Added a PySpark doctest and regenerated `sql-expression-schema.md`.\n\n### Was this patch authored or co-authored using generative AI tooling? No\n\nCloses #57479 from SreeramaYeshwanthGowd/add-json-typeof-function.\n\nAuthored-by: SreeramaYeshwanthGowd <yeshwanthgowdsreerama@gmail.com>\nSigned-off-by: Wenchen Fan <wenchen@databricks.com>",
+            "tree": {
+                "sha": "8235e386fc459aa726a11de6bc66f947cd6b0bdd",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/8235e386fc459aa726a11de6bc66f947cd6b0bdd"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/b24247bac586c8014211fc73f207c5a46af73024",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/b24247bac586c8014211fc73f207c5a46af73024",
+        "html_url": "https://github.com/apache/spark/commit/b24247bac586c8014211fc73f207c5a46af73024",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/b24247bac586c8014211fc73f207c5a46af73024/comments",
+        "author": {
+            "login": "SreeramaYeshwanthGowd",
+            "id": 177580787,
+            "node_id": "U_kgDOCpWq8w",
+            "avatar_url": "https://avatars.githubusercontent.com/u/177580787?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/SreeramaYeshwanthGowd",
+            "html_url": "https://github.com/SreeramaYeshwanthGowd",
+            "followers_url": "https://api.github.com/users/SreeramaYeshwanthGowd/followers",
+            "following_url": "https://api.github.com/users/SreeramaYeshwanthGowd/following{/other_user}",
+            "gists_url": "https://api.github.com/users/SreeramaYeshwanthGowd/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/SreeramaYeshwanthGowd/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/SreeramaYeshwanthGowd/subscriptions",
+            "organizations_url": "https://api.github.com/users/SreeramaYeshwanthGowd/orgs",
+            "repos_url": "https://api.github.com/users/SreeramaYeshwanthGowd/repos",
+            "events_url": "https://api.github.com/users/SreeramaYeshwanthGowd/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/SreeramaYeshwanthGowd/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "cloud-fan",
+            "id": 3182036,
+            "node_id": "MDQ6VXNlcjMxODIwMzY=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/3182036?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/cloud-fan",
+            "html_url": "https://github.com/cloud-fan",
+            "followers_url": "https://api.github.com/users/cloud-fan/followers",
+            "following_url": "https://api.github.com/users/cloud-fan/following{/other_user}",
+            "gists_url": "https://api.github.com/users/cloud-fan/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/cloud-fan/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/cloud-fan/subscriptions",
+            "organizations_url": "https://api.github.com/users/cloud-fan/orgs",
+            "repos_url": "https://api.github.com/users/cloud-fan/repos",
+            "events_url": "https://api.github.com/users/cloud-fan/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/cloud-fan/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "f896d8d0d40a859f0c40ef99dac3fb2bba5035e7",
+                "url": "https://api.github.com/repos/apache/spark/commits/f896d8d0d40a859f0c40ef99dac3fb2bba5035e7",
+                "html_url": "https://github.com/apache/spark/commit/f896d8d0d40a859f0c40ef99dac3fb2bba5035e7"
+            }
+        ]
+    },
+    {
+        "sha": "f896d8d0d40a859f0c40ef99dac3fb2bba5035e7",
+        "node_id": "C_kwDOAQXtWtoAKGY4OTZkOGQwZDQwYTg1OWYwYzQwZWY5OWRhYzNmYjJiYmE1MDM1ZTc",
+        "commit": {
+            "author": {
+                "name": "Dongjoon Hyun",
+                "email": "dongjoon@apache.org",
+                "date": "2026-08-09T00:11:37Z"
+            },
+            "committer": {
+                "name": "Dongjoon Hyun",
+                "email": "dongjoon@apache.org",
+                "date": "2026-08-09T00:11:37Z"
+            },
+            "message": "[SPARK-58607][BUILD] Upgrade `Netty` to 4.2.17.Final\n\n### What changes were proposed in this pull request?\n\nThis PR aims to upgrade Netty to 4.2.17.Final.\n\n### Why are the changes needed?\n\nTo bring the latest bug fixes.\n\n- https://github.com/netty/netty/releases/tag/netty-4.2.17.Final (2026-08-04)\n\nNote that `netty-tcnative` stays at 2.0.81.Final because Netty 4.2.17.Final still depends on it.\n\n### Does this PR introduce _any_ user-facing change?\n\nNo.\n\n### How was this patch tested?\n\nPass the CIs.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: Claude Fable 5\n\nCloses #57807 from dongjoon-hyun/SPARK-58607.\n\nAuthored-by: Dongjoon Hyun <dongjoon@apache.org>\nSigned-off-by: Dongjoon Hyun <dongjoon@apache.org>",
+            "tree": {
+                "sha": "2ce3f8be5780480babb576136f00984d6c044c7d",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/2ce3f8be5780480babb576136f00984d6c044c7d"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/f896d8d0d40a859f0c40ef99dac3fb2bba5035e7",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/f896d8d0d40a859f0c40ef99dac3fb2bba5035e7",
+        "html_url": "https://github.com/apache/spark/commit/f896d8d0d40a859f0c40ef99dac3fb2bba5035e7",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/f896d8d0d40a859f0c40ef99dac3fb2bba5035e7/comments",
+        "author": {
+            "login": "dongjoon-hyun",
+            "id": 9700541,
+            "node_id": "MDQ6VXNlcjk3MDA1NDE=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/9700541?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dongjoon-hyun",
+            "html_url": "https://github.com/dongjoon-hyun",
+            "followers_url": "https://api.github.com/users/dongjoon-hyun/followers",
+            "following_url": "https://api.github.com/users/dongjoon-hyun/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dongjoon-hyun/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dongjoon-hyun/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dongjoon-hyun/subscriptions",
+            "organizations_url": "https://api.github.com/users/dongjoon-hyun/orgs",
+            "repos_url": "https://api.github.com/users/dongjoon-hyun/repos",
+            "events_url": "https://api.github.com/users/dongjoon-hyun/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dongjoon-hyun/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "dongjoon-hyun",
+            "id": 9700541,
+            "node_id": "MDQ6VXNlcjk3MDA1NDE=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/9700541?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dongjoon-hyun",
+            "html_url": "https://github.com/dongjoon-hyun",
+            "followers_url": "https://api.github.com/users/dongjoon-hyun/followers",
+            "following_url": "https://api.github.com/users/dongjoon-hyun/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dongjoon-hyun/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dongjoon-hyun/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dongjoon-hyun/subscriptions",
+            "organizations_url": "https://api.github.com/users/dongjoon-hyun/orgs",
+            "repos_url": "https://api.github.com/users/dongjoon-hyun/repos",
+            "events_url": "https://api.github.com/users/dongjoon-hyun/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dongjoon-hyun/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "bcd4120fa83e37eff77bd677672e62ca7eaf0b2f",
+                "url": "https://api.github.com/repos/apache/spark/commits/bcd4120fa83e37eff77bd677672e62ca7eaf0b2f",
+                "html_url": "https://github.com/apache/spark/commit/bcd4120fa83e37eff77bd677672e62ca7eaf0b2f"
+            }
+        ]
+    },
+    {
+        "sha": "bcd4120fa83e37eff77bd677672e62ca7eaf0b2f",
+        "node_id": "C_kwDOAQXtWtoAKGJjZDQxMjBmYTgzZTM3ZWZmNzdiZDY3NzY3MmU2MmNhN2VhZjBiMmY",
+        "commit": {
+            "author": {
+                "name": "bojana-db",
+                "email": "bojana.zecevic@databricks.com",
+                "date": "2026-08-08T11:10:34Z"
+            },
+            "committer": {
+                "name": "Uros Bojanic",
+                "email": "221401595+uros-b@users.noreply.github.com",
+                "date": "2026-08-08T11:10:34Z"
+            },
+            "message": "[SPARK-58643][SQL] Require a constant `create_if_missing` in `variant_set/try_variant_set`\n\n### What changes were proposed in this pull request?\nMake the optional `create_if_missing` argument of `variant_set` (and `try_variant_set`) a constant-only argument. `VariantSet.checkInputDataTypes` now rejects a non-foldable `create_if_missing` with `DATATYPE_MISMATCH.NON_FOLDABLE_INPUT`.\n\n### Why are the changes needed?\n`create_if_missing` is a mode flag that controls the operation's behavior, not per-row data, so it should be a constant.\n\n### Does this PR introduce _any_ user-facing change?\nYes, within the unreleased `master`/`branch-4.x` line only (`variant_set`/`try_variant_set` are new in 4.3.0 and not yet released; there is no change relative to any released Spark version).\n\n### How was this patch tested?\nUnit tests.\n\n### Was this patch authored or co-authored using generative AI tooling?\nGenerated-by: Claude Code with Claude Opus 4.8\n\nCloses #57855 from bojana-db/reject-non-foldable-flag-variant-set.\n\nAuthored-by: bojana-db <bojana.zecevic@databricks.com>\nSigned-off-by: Uros Bojanic <221401595+uros-b@users.noreply.github.com>",
+            "tree": {
+                "sha": "cc397dee1e8cd8cf35ea98ffddcafe27580cc7dc",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/cc397dee1e8cd8cf35ea98ffddcafe27580cc7dc"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/bcd4120fa83e37eff77bd677672e62ca7eaf0b2f",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/bcd4120fa83e37eff77bd677672e62ca7eaf0b2f",
+        "html_url": "https://github.com/apache/spark/commit/bcd4120fa83e37eff77bd677672e62ca7eaf0b2f",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/bcd4120fa83e37eff77bd677672e62ca7eaf0b2f/comments",
+        "author": {
+            "login": "bojana-db",
+            "id": 286673374,
+            "node_id": "U_kgDOERZJ3g",
+            "avatar_url": "https://avatars.githubusercontent.com/u/286673374?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/bojana-db",
+            "html_url": "https://github.com/bojana-db",
+            "followers_url": "https://api.github.com/users/bojana-db/followers",
+            "following_url": "https://api.github.com/users/bojana-db/following{/other_user}",
+            "gists_url": "https://api.github.com/users/bojana-db/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/bojana-db/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/bojana-db/subscriptions",
+            "organizations_url": "https://api.github.com/users/bojana-db/orgs",
+            "repos_url": "https://api.github.com/users/bojana-db/repos",
+            "events_url": "https://api.github.com/users/bojana-db/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/bojana-db/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "uros-b",
+            "id": 221401595,
+            "node_id": "U_kgDODTJR-w",
+            "avatar_url": "https://avatars.githubusercontent.com/u/221401595?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/uros-b",
+            "html_url": "https://github.com/uros-b",
+            "followers_url": "https://api.github.com/users/uros-b/followers",
+            "following_url": "https://api.github.com/users/uros-b/following{/other_user}",
+            "gists_url": "https://api.github.com/users/uros-b/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/uros-b/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/uros-b/subscriptions",
+            "organizations_url": "https://api.github.com/users/uros-b/orgs",
+            "repos_url": "https://api.github.com/users/uros-b/repos",
+            "events_url": "https://api.github.com/users/uros-b/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/uros-b/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "e2f176edd3be6132a649924c48f9075c9a0f9f0d",
+                "url": "https://api.github.com/repos/apache/spark/commits/e2f176edd3be6132a649924c48f9075c9a0f9f0d",
+                "html_url": "https://github.com/apache/spark/commit/e2f176edd3be6132a649924c48f9075c9a0f9f0d"
+            }
+        ]
+    },
+    {
+        "sha": "e2f176edd3be6132a649924c48f9075c9a0f9f0d",
+        "node_id": "C_kwDOAQXtWtoAKGUyZjE3NmVkZDNiZTYxMzJhNjQ5OTI0YzQ4ZjkwNzVjOWEwZjlmMGQ",
+        "commit": {
+            "author": {
+                "name": "Spenser Sun",
+                "email": "hsun112358@gmail.com",
+                "date": "2026-08-08T11:07:14Z"
+            },
+            "committer": {
+                "name": "Uros Bojanic",
+                "email": "221401595+uros-b@users.noreply.github.com",
+                "date": "2026-08-08T11:07:14Z"
+            },
+            "message": "[SPARK-58602][PYTHON][TEST][FOLLOWUP] Fix the test entry point of test_pyarrow_array_from_pandas_default\n\n### What changes were proposed in this pull request?\n\nChange the `__main__` entry point of `test_pyarrow_array_from_pandas_default.py` from `main(globals()[\"__file__\"])` to a bare `main()`.\n\n### Why are the changes needed?\n\n`pyspark.testing.main(module=None)` expects either no argument (it then resolves the real module name via `__spec__`) or a module name -- it forwards its argument straight to `unittest.main(module=...)`. Passing `globals()[\"__file__\"]` hands it a filesystem path, which `unittest` tries to import as a module name and fails:\n\n```\nModuleNotFoundError: No module named '/__w/spark/spark/python/pyspark/tests/upstream/pyarrow/test_pyarrow_array_from_pandas_default'\n```\n\nThis aborts the `pyspark-sql` test module on master (exit code 19) before the rest of the shard completes, so it is currently failing CI on master and on open PRs. Every other pyspark test file uses a bare `main()`; this was the only one passing a path.\n\n### Does this PR introduce _any_ user-facing change?\n\nNo. Test-only fix.\n\n### How was this patch tested?\n\nRan the module both ways locally. Before, `python -m pyspark.tests.upstream.pyarrow.test_pyarrow_array_from_pandas_default` raised `ModuleNotFoundError`; after, it runs to completion (`Ran 1 test ... OK`). `dev/lint-python --ruff` is clean.\n\n### Was this patch authored or co-authored using generative AI tooling?\n\nGenerated-by: Claude Code (Opus 4.8)\n\nCloses #57864 from Spenserrrr/from-pandas-main-fix.\n\nAuthored-by: Spenser Sun <hsun112358@gmail.com>\nSigned-off-by: Uros Bojanic <221401595+uros-b@users.noreply.github.com>",
+            "tree": {
+                "sha": "72dc70c192500952f61ea7495e7396b58528f75e",
+                "url": "https://api.github.com/repos/apache/spark/git/trees/72dc70c192500952f61ea7495e7396b58528f75e"
+            },
+            "url": "https://api.github.com/repos/apache/spark/git/commits/e2f176edd3be6132a649924c48f9075c9a0f9f0d",
+            "comment_count": 0,
+            "verification": {
+                "verified": false,
+                "reason": "unsigned",
+                "signature": null,
+                "payload": null,
+                "verified_at": null
+            }
+        },
+        "url": "https://api.github.com/repos/apache/spark/commits/e2f176edd3be6132a649924c48f9075c9a0f9f0d",
+        "html_url": "https://github.com/apache/spark/commit/e2f176edd3be6132a649924c48f9075c9a0f9f0d",
+        "comments_url": "https://api.github.com/repos/apache/spark/commits/e2f176edd3be6132a649924c48f9075c9a0f9f0d/comments",
+        "author": {
+            "login": "Spenserrrr",
+            "id": 171112844,
+            "node_id": "U_kgDOCjL5jA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/171112844?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/Spenserrrr",
+            "html_url": "https://github.com/Spenserrrr",
+            "followers_url": "https://api.github.com/users/Spenserrrr/followers",
+            "following_url": "https://api.github.com/users/Spenserrrr/following{/other_user}",
+            "gists_url": "https://api.github.com/users/Spenserrrr/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/Spenserrrr/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/Spenserrrr/subscriptions",
+            "organizations_url": "https://api.github.com/users/Spenserrrr/orgs",
+            "repos_url": "https://api.github.com/users/Spenserrrr/repos",
+            "events_url": "https://api.github.com/users/Spenserrrr/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/Spenserrrr/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "committer": {
+            "login": "uros-b",
+            "id": 221401595,
+            "node_id": "U_kgDODTJR-w",
+            "avatar_url": "https://avatars.githubusercontent.com/u/221401595?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/uros-b",
+            "html_url": "https://github.com/uros-b",
+            "followers_url": "https://api.github.com/users/uros-b/followers",
+            "following_url": "https://api.github.com/users/uros-b/following{/other_user}",
+            "gists_url": "https://api.github.com/users/uros-b/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/uros-b/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/uros-b/subscriptions",
+            "organizations_url": "https://api.github.com/users/uros-b/orgs",
+            "repos_url": "https://api.github.com/users/uros-b/repos",
+            "events_url": "https://api.github.com/users/uros-b/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/uros-b/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+        },
+        "parents": [
+            {
+                "sha": "26b3fe6d79a8f4b8fa40a6ccab15e03b0a98ac5f",
+                "url": "https://api.github.com/repos/apache/spark/commits/26b3fe6d79a8f4b8fa40a6ccab15e03b0a98ac5f",
+                "html_url": "https://github.com/apache/spark/commit/26b3fe6d79a8f4b8fa40a6ccab15e03b0a98ac5f"
+            }
+        ]
+    }
+]
